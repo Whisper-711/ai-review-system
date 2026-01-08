@@ -42,10 +42,6 @@ pip install -r requirements.txt
 DASHSCOPE_API_KEY=你的-dashscope-api-key
 ```
 
-项目会优先读取 `DASHSCOPE_API_KEY`，如果不存在则回退到旧的 `COZE_API_KEY`（为兼容历史代码保留）。
-
-> 注意：不要把 `.env` 提交到 Git 仓库或公开分享。
-
 ---
 
 ## 2. 启动应用
@@ -124,7 +120,7 @@ python app.py
 
 ## 4. 与通义千问 / DashScope 的集成说明
 
-所有调用封装在 `coze_client.py` 中（为了兼容旧代码，类名仍叫 `CozeClient`）：
+所有调用封装在 `dashscope_client.py` 中（客户端类名为 `DashScopeClient`）：
 
 - `generate_questions_from_note(note_text, question_types, max_questions)`
   - 输入一段笔记文本；
@@ -141,7 +137,7 @@ python app.py
   - 模型根据题干、知识点与参考答案，对用户作答进行 0~1 评分，并返回中文点评；
   - 后端将其转换为 0~100 分，并以 60 分为默认及格线（可按需要调整）。
 
-> 如果你要迁移到其他大模型供应商，只需改写 `coze_client.py` 里的请求与解析逻辑，Flask 其他部分基本不用动。
+> 如果你要迁移到其他大模型供应商，只需改写 `dashscope_client.py` 里的请求与解析逻辑，Flask 其他部分基本不用动。
 
 ---
 
@@ -167,17 +163,3 @@ python app.py
 
 ---
 
-## 7. 开源许可证
-
-你可以根据自己的想法选择许可证（MIT / Apache-2.0 等），例如：
-
-```text
-MIT License
-...
-```
-
-在正式开源前，建议：
-
-- 再次确认 `.env` 未被提交；
-- 删除或替换所有真实的 API Key；
-- 如有截图，注意是否包含敏感信息。
