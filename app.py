@@ -13,7 +13,7 @@ from models import (
     get_question_by_id,
     delete_note,
 )
-from coze_client import CozeClient
+from dashscope_client import DashScopeClient
 
 
 load_dotenv()
@@ -33,7 +33,7 @@ def create_app():
 
     # 优先使用 DashScope/通义的环境变量名，兼容旧的 COZE_API_KEY
     api_key = os.getenv('DASHSCOPE_API_KEY') or os.getenv('COZE_API_KEY', '')
-    coze_client = CozeClient(api_key, os.getenv('COZE_BOT_ID', ''))
+    dashscope_client = DashScopeClient(api_key, os.getenv('COZE_BOT_ID', ''))
 
     @app.route('/')
     def index():
@@ -79,7 +79,7 @@ def create_app():
             max_questions = int(max_questions_raw)
 
         # 让模型自己从笔记中总结知识点并生成题目
-        questions = coze_client.generate_questions_from_note(
+        questions = dashscope_client.generate_questions_from_note(
             content,
             '',
             question_types=question_types,
@@ -140,7 +140,7 @@ def create_app():
 
         if question.get('q_type') == 'short_answer':
             # 简答题走千问评分
-            score_0_1, comment = coze_client.score_answer(question, user_answer or '')
+            score_0_1, comment = dashscope_client.score_answer(question, user_answer or '')
             is_correct = score_0_1 >= 0.6
         else:
             # 选择题对比：优先按选项字母（A/B/C/D）归一化比较，避免 "C" vs "C. xxx" 判错
