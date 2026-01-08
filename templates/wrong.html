@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>错题本 - AI 复习问答系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+      <div class="mx-auto flex w-full items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
+          <div>
+            <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
+            <p class="text-xs text-slate-400">集中复习错题，查漏补缺</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm">
+          <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
+          <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/wrong" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">错题本</a>
+          <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full px-6 py-8 text-sm">
+      <section class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-semibold text-slate-50">错题本</h2>
+          <p class="text-xs text-slate-400">根据历史答题结果自动收集错题，方便集中复习。</p>
+        </div>
+        <button
+          id="load"
+          class="inline-flex items-center rounded-lg bg-rose-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-rose-500/40 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+        >
+          加载错题
+        </button>
+      </section>
+
+      <section id="questions" class="space-y-4"></section>
+    </main>
+
+    <script>
+    async function loadWrong() {
+      const res = await fetch('/api/review/wrong?limit=50');
+      const data = await res.json();
+      const container = document.getElementById('questions');
+      container.innerHTML = '';
+
+      data.questions.forEach((q) => {
+        const div = document.createElement('article');
+        div.className = 'rounded-2xl border border-rose-500/40 bg-slate-900/70 p-4 shadow-md shadow-rose-500/20';
+
+        const title = document.createElement('div');
+        title.className = 'mb-2 text-sm font-medium text-slate-50';
+        title.textContent = `[#${q.id}] (${q.knowledge_tag || '未标注'}) ${q.content}`;
+        div.appendChild(title);
+
+        if (q.options && q.options.length) {
+          const opts = document.createElement('div');
+          opts.className = 'mb-2 text-xs text-slate-300';
+          opts.textContent = '选项：' + q.options.join(' / ');
+          div.appendChild(opts);
+        }
+
+        const ans = document.createElement('div');
+        ans.className = 'mb-1 text-xs text-emerald-300';
+        ans.textContent = '标准答案：' + q.answer;
+        div.appendChild(ans);
+
+        if (q.analysis) {
+          const ana = document.createElement('div');
+          ana.className = 'text-xs text-slate-300';
+          ana.textContent = '解析：' + q.analysis;
+          div.appendChild(ana);
+        }
+
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('load').addEventListener('click', loadWrong);
+  </script>
+  </body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI 复习问答系统 - 上传笔记</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+      <div class="mx-auto flex w-full items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
+          <div>
+            <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
+            <p class="text-xs text-slate-400">上传笔记 · 自动生成面试题 · 错题本与数据面板</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm">
+          <a href="/" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">上传笔记</a>
+          <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
+          <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto flex w-full flex-col gap-6 px-6 py-8 lg:flex-row">
+      <section class="w-full lg:w-2/3">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl shadow-slate-900/40">
+          <h2 class="mb-1 text-lg font-semibold text-slate-50">上传笔记并自动生成题目</h2>
+          <p class="mb-6 text-xs text-slate-400">支持 Markdown / TXT / 简单文本，将根据内容自动生成单选题与简答题。</p>
+
+          <form id="upload-form" enctype="multipart/form-data" method="post" class="space-y-4 text-sm">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-300">标题（可选）</label>
+              <input
+                type="text"
+                name="title"
+                class="block w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder="例如：神经网络基础笔记 / Transformer 论文精读"
+              />
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <div>
+                <span class="mb-1 block text-xs font-medium text-slate-300">生成题型</span>
+                <div class="space-y-1 text-xs text-slate-200">
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="question_types"
+                      value="single_choice"
+                      checked
+                      class="h-3 w-3 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <span>单选题 (single_choice)</span>
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="question_types"
+                      value="short_answer"
+                      checked
+                      class="h-3 w-3 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <span>简答题 (short_answer)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-xs font-medium text-slate-300">目标题目数量（可选）</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="max_questions"
+                  class="block w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="例如：20（不填则由模型自行决定）"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-300">笔记文件</label>
+              <input
+                type="file"
+                name="file"
+                required
+                class="block w-full cursor-pointer rounded-lg border border-dashed border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-indigo-500 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:border-indigo-500"
+              />
+              <p class="mt-1 text-[11px] text-slate-500">建议先使用 txt / md 进行测试。</p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <button
+                type="submit"
+                class="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-indigo-500/40 hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+              >
+                上传并生成题目
+              </button>
+              <span class="text-[11px] text-slate-500">生成速度取决于笔记长度与模型响应时间。</span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <aside class="w-full lg:w-1/3 space-y-4">
+        <div class="mb-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs shadow-xl shadow-slate-900/40">
+          <h3 class="mb-2 text-sm font-semibold text-slate-100">生成结果</h3>
+          <pre
+            id="result"
+            class="max-h-64 overflow-auto rounded-lg bg-slate-950/80 p-3 text-[11px] text-emerald-300"
+          ></pre>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-300 shadow-xl shadow-slate-900/40">
+          <h3 class="mb-2 text-sm font-semibold text-slate-100">使用小贴士</h3>
+          <ul class="space-y-1 list-disc pl-4">
+            <li>按知识点拆分多份笔记，有助于生成更聚焦的题目。</li>
+            <li>先用少量文本调试生成质量，再逐步扩大范围。</li>
+            <li>生成后可在「练习」「错题本」「数据面板」中查看与复习。</li>
+          </ul>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-300 shadow-xl shadow-slate-900/40">
+          <div class="mb-2 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-100">题库管理</h3>
+            <button
+              id="refresh-notes"
+              class="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] text-slate-300 hover:border-indigo-500 hover:text-indigo-300"
+            >
+              刷新
+            </button>
+          </div>
+          <p class="mb-2 text-[11px] text-slate-400">每条记录对应一次上传的笔记模块，删除后将同时移除该模块下的题目与作答记录。</p>
+          <div
+            id="notes-list"
+            class="max-h-64 space-y-2 overflow-y-auto rounded-lg bg-slate-950/60 p-2 text-[11px] text-slate-200"
+          >
+            <p class="text-slate-500">正在加载模块列表...</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      document.getElementById('upload-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const res = await fetch('/api/notes/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        // 上传成功后刷新模块列表
+        loadNotes();
+      });
+
+      async function loadNotes() {
+        const listEl = document.getElementById('notes-list');
+        try {
+          const res = await fetch('/api/notes');
+          const data = await res.json();
+          const notes = data.notes || [];
+
+          if (!notes.length) {
+            listEl.innerHTML = '<p class="text-slate-500">当前还没有任何笔记模块，先在左侧上传一份笔记吧。</p>';
+            return;
+          }
+
+          listEl.innerHTML = '';
+          notes.forEach((n) => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1';
+
+            const info = document.createElement('div');
+            info.className = 'flex-1 pr-2';
+            info.innerHTML = `<div class="text-[11px] text-slate-100">[#${n.id}] ${n.title || '未命名笔记'}</div>`;
+            row.appendChild(info);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'shrink-0 rounded-md bg-rose-500 px-2 py-0.5 text-[11px] text-white hover:bg-rose-400';
+            delBtn.textContent = '删除';
+            delBtn.onclick = async () => {
+              if (!confirm(`确认删除模块 #${n.id} 及其所有题目与作答记录吗？`)) return;
+              const resp = await fetch(`/api/notes/${n.id}/delete`, { method: 'POST' });
+              const rj = await resp.json();
+              if (rj.status === 'ok') {
+                loadNotes();
+              } else {
+                alert('删除失败');
+              }
+            };
+            row.appendChild(delBtn);
+
+            listEl.appendChild(row);
+          });
+        } catch (e) {
+          console.error('加载模块列表失败', e);
+          listEl.innerHTML = '<p class="text-rose-400">加载失败，请稍后重试。</p>';
+        }
+      }
+
+      document.getElementById('refresh-notes').addEventListener('click', loadNotes);
+
+      // 首次进入页面时加载一次模块列表
+      loadNotes();
+    </script>
+  </body>
+</html>

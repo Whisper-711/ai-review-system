@@ -1,0 +1,24 @@
+# Python 缓存与编译文件
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 虚拟环境
+venv/
+.env*/
+
+# 本地配置与敏感信息
+.env
+*.env.local
+
+# 本地数据库与上传文件
+*.db
+uploads/
+
+# IDE & 编辑器配置
+.vscode/
+.idea/
+*.iml
+
+# 日志文件
+*.log

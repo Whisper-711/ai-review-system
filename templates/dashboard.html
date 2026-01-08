@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>数据面板 - AI 复习问答系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+      <div class="mx-auto flex w-full items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
+          <div>
+            <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
+            <p class="text-xs text-slate-400">学习数据总览与每周正确率</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm">
+          <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
+          <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
+          <a href="/dashboard" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">数据面板</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full px-6 py-8 text-sm">
+      <section class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
+        <h2 class="mb-2 text-base font-semibold text-slate-50">总体数据</h2>
+        <p id="summary" class="text-xs text-slate-300"></p>
+      </section>
+
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
+        <h3 class="mb-2 text-sm font-semibold text-slate-100">每周正确率</h3>
+        <div id="chart-week" class="h-80"></div>
+      </section>
+    </main>
+
+    <script>
+    async function loadStats() {
+      const res = await fetch('/api/stats/overview');
+      const data = await res.json();
+
+      const summary = document.getElementById('summary');
+      summary.textContent = `总答题数：${data.total_answers}，正确数：${data.correct_answers}，总体正确率：${(data.accuracy * 100).toFixed(1)}%`;
+
+      const weeks = (data.by_week || []).map((w) => w.week || '未知');
+      const weekAcc = (data.by_week || []).map((w) => w.accuracy);
+
+      const weekChart = echarts.init(document.getElementById('chart-week'));
+      weekChart.setOption({
+        tooltip: { formatter: (p) => `${p.name}<br/>正确率：${(p.value * 100).toFixed(1)}%` },
+        xAxis: { type: 'category', data: weeks, axisLabel: { rotate: 45 } },
+        yAxis: { type: 'value', max: 1, axisLabel: { formatter: (v) => `${(v * 100).toFixed(0)}%` } },
+        series: [
+          {
+            name: '正确率',
+            type: 'line',
+            smooth: true,
+            data: weekAcc,
+            areaStyle: {},
+          },
+        ],
+      });
+    }
+
+    loadStats();
+  </script>
+  </body>
+</html>

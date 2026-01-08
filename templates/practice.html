@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>对话练习 - AI 复习问答系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+      <div class="mx-auto flex w-full items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
+          <div>
+            <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
+            <p class="text-xs text-slate-400">基于你的笔记，一问一答对话式刷题</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm">
+          <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
+          <a href="/practice" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">对话练习</a>
+          <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
+          <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto flex w-full flex-col gap-4 px-6 py-6 lg:flex-row">
+      <!-- 左侧：配置 + 对话区 -->
+      <section class="flex w-full flex-col gap-3 lg:w-2/3">
+        <!-- 配置区 -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-sm shadow-xl shadow-slate-900/40">
+          <div class="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div class="space-y-1">
+              <h2 class="text-base font-semibold text-slate-50">开始一轮对话练习</h2>
+              <p class="text-xs text-slate-400">选择题源模块、题型和本轮题量，系统将按你的配置一问一答出题。</p>
+            </div>
+          </div>
+          <div class="grid gap-3 md:grid-cols-3">
+            <div class="space-y-1">
+              <label class="block text-[11px] font-medium text-slate-300">题源模块</label>
+              <select
+                id="module-select"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="latest">最新模块</option>
+                <option value="all">全部模块</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[11px] font-medium text-slate-300">题型</label>
+              <select
+                id="qtype-select"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="">全部</option>
+                <option value="single_choice">只做单选题</option>
+                <option value="short_answer">只做简答题</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[11px] font-medium text-slate-300">本轮题量</label>
+              <input
+                type="number"
+                id="limit-input"
+                min="1"
+                value="10"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button
+              id="load"
+              class="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-indigo-500/40 hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              开始练习
+            </button>
+            <p id="session-info" class="text-[11px] text-slate-400"></p>
+          </div>
+        </div>
+
+        <!-- 对话区 -->
+        <div class="flex-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
+          <h3 class="mb-3 text-sm font-semibold text-slate-100">对话区</h3>
+          <div
+            id="chat"
+            class="flex h-[460px] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-950/60 p-3 text-xs"
+          >
+            <div class="flex justify-start">
+              <div class="max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-100">
+                <p>你好，我会基于你上传的笔记给你出题。点击上方「开始练习」，我们就从第一题开始。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧：当前题目输入与进度 -->
+      <aside class="flex w-full flex-col gap-3 lg:w-1/3">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs shadow-xl shadow-slate-900/40">
+          <h3 class="mb-2 text-sm font-semibold text-slate-100">当前题目</h3>
+          <div id="current-question" class="space-y-2 text-xs text-slate-200">
+            <p class="text-slate-500">请先点击左侧的「开始练习」。</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs shadow-xl shadow-slate-900/40">
+          <h3 class="mb-2 text-sm font-semibold text-slate-100">本轮进度</h3>
+          <p id="progress" class="text-xs text-slate-300">尚未开始。</p>
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      let questions = [];
+      let currentIndex = -1;
+
+      function appendBotMessage(text) {
+        const chat = document.getElementById('chat');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-start';
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-100';
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        chat.appendChild(wrapper);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function appendUserMessage(text) {
+        const chat = document.getElementById('chat');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-end';
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[80%] rounded-2xl rounded-br-sm bg-indigo-500 px-3 py-2 text-slate-50';
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        chat.appendChild(wrapper);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function updateProgress() {
+        const progress = document.getElementById('progress');
+        if (!questions.length) {
+          progress.textContent = '尚未开始。';
+          return;
+        }
+        progress.textContent = `当前进度：${currentIndex + 1} / ${questions.length}`;
+      }
+
+      function showCurrentQuestion() {
+        const box = document.getElementById('current-question');
+        box.innerHTML = '';
+        if (!questions.length || currentIndex < 0 || currentIndex >= questions.length) {
+          box.innerHTML = '<p class="text-slate-500">本轮题目已答完，可以重新开始一轮练习。</p>';
+          return;
+        }
+
+        const q = questions[currentIndex];
+
+        const title = document.createElement('div');
+        title.className = 'text-slate-100 text-xs mb-2';
+        title.textContent = `[#${q.id}] (${q.knowledge_tag || '未标注'}) ${q.content}`;
+        box.appendChild(title);
+
+        const typeTag = document.createElement('span');
+        typeTag.className = 'mb-2 inline-flex rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300';
+        typeTag.textContent = q.q_type === 'short_answer' ? '简答题' : '单选题';
+        box.appendChild(typeTag);
+
+        const form = document.createElement('div');
+        form.className = 'mt-3 space-y-2';
+        box.appendChild(form);
+
+        let inputElem = null;
+
+        if (q.options && q.options.length) {
+          q.options.forEach((opt) => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 hover:border-indigo-500';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'answer';
+            radio.value = opt;
+            label.appendChild(radio);
+            const span = document.createElement('span');
+            span.textContent = opt;
+            label.appendChild(span);
+            form.appendChild(label);
+          });
+        } else {
+          inputElem = document.createElement('textarea');
+          inputElem.rows = 4;
+          inputElem.id = 'answer-textarea';
+          inputElem.className = 'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
+          inputElem.placeholder = '请输入你的回答...';
+          form.appendChild(inputElem);
+        }
+
+        const btn = document.createElement('button');
+        btn.textContent = '提交这一题';
+        btn.className = 'mt-2 inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-emerald-500/40 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950';
+        btn.onclick = async () => {
+          let userAnswer = '';
+          if (q.options && q.options.length) {
+            const checked = box.querySelector('input[type=radio][name=answer]:checked');
+            if (checked) userAnswer = checked.value;
+          } else if (inputElem) {
+            userAnswer = inputElem.value;
+          }
+
+          if (!userAnswer.trim()) {
+            alert('请先输入或选择你的答案');
+            return;
+          }
+
+          appendUserMessage(userAnswer);
+
+          const resp = await fetch('/api/answers/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question_id: q.id,
+              user_answer: userAnswer,
+            }),
+          });
+          const result = await resp.json();
+
+          const isCorrect = !!result.is_correct;
+          const score = typeof result.score === 'number' ? result.score : null;
+          const comment = result.comment || '';
+          const stdAnswer = result.standard_answer || q.answer || '';
+          const analysis = result.analysis || q.analysis || '';
+
+          const feedbackLines = [];
+          if (q.q_type === 'short_answer') {
+            const scoreText = score !== null ? `${score} / 100` : 'N/A';
+            feedbackLines.push(
+              (isCorrect ? '✅ 简答题判定：通过。' : '❌ 简答题判定：未通过。') + ` 评分：${scoreText}`
+            );
+            if (comment) {
+              feedbackLines.push('点评：' + comment);
+            }
+          } else {
+            feedbackLines.push(isCorrect ? '✅ 回答正确！' : '❌ 回答不太对，我们来看看标准答案。');
+          }
+
+          if (stdAnswer) {
+            feedbackLines.push('参考答案：' + stdAnswer);
+          }
+          if (analysis) {
+            feedbackLines.push('解析：' + analysis);
+          }
+
+          appendBotMessage(feedbackLines.join('\n'));
+
+          currentIndex += 1;
+          updateProgress();
+          showCurrentQuestion();
+        };
+        box.appendChild(btn);
+      }
+
+      async function fetchNotes() {
+        try {
+          const res = await fetch('/api/notes');
+          const data = await res.json();
+          const select = document.getElementById('module-select');
+
+          // 保留默认的 "最新模块" 和 "全部模块"
+          while (select.options.length > 2) {
+            select.remove(2);
+          }
+
+          (data.notes || []).forEach((n) => {
+            const opt = document.createElement('option');
+            opt.value = String(n.id);
+            opt.textContent = `[${n.id}] ${n.title || '未命名笔记'}`;
+            select.appendChild(opt);
+          });
+        } catch (e) {
+          console.error('加载模块列表失败', e);
+        }
+      }
+
+      async function loadQuestions() {
+        const moduleSelect = document.getElementById('module-select');
+        const qtypeSelect = document.getElementById('qtype-select');
+        const limitInput = document.getElementById('limit-input');
+
+        const params = new URLSearchParams();
+
+        const limitVal = parseInt(limitInput.value || '10', 10);
+        params.append('limit', String(isNaN(limitVal) || limitVal <= 0 ? 10 : limitVal));
+
+        const moduleVal = moduleSelect.value;
+        if (moduleVal === 'latest') {
+          params.append('scope', 'latest');
+        } else if (moduleVal === 'all') {
+          // 不加 note_id / scope，表示所有模块
+        } else {
+          params.append('note_id', moduleVal);
+        }
+
+        const qtypeVal = qtypeSelect.value;
+        if (qtypeVal) {
+          params.append('q_type', qtypeVal);
+        }
+
+        const res = await fetch('/api/questions/by_knowledge?' + params.toString());
+        const data = await res.json();
+
+        questions = data.questions || [];
+        currentIndex = 0;
+
+        const info = document.getElementById('session-info');
+        if (!questions.length) {
+          info.textContent = '没有找到题目，请先在首页上传笔记并生成题库，或调整知识点标签。';
+          const chat = document.getElementById('chat');
+          chat.innerHTML = '';
+          appendBotMessage('当前没有可用题目，请先在首页上传笔记并生成题目。');
+          document.getElementById('current-question').innerHTML = '<p class="text-slate-500">暂无题目。</p>';
+          updateProgress();
+          return;
+        }
+
+        info.textContent = `本轮已载入 ${questions.length} 道题，将按顺序一问一答。`;
+
+        const chat = document.getElementById('chat');
+        chat.innerHTML = '';
+        appendBotMessage('好的，我们开始这一轮练习。下面是第 1 题：');
+
+        updateProgress();
+        showCurrentQuestion();
+      }
+
+      document.getElementById('load').addEventListener('click', loadQuestions);
+
+      // 进入页面时先拉一次模块列表
+      fetchNotes();
+    </script>
+  </body>
+</html>
