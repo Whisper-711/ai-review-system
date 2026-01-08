@@ -8,7 +8,7 @@
 - 记录错题并支持集中复习，
 - 提供按周统计的正确率可视化面板。
 
-> 仅依赖 Flask + SQLite + DashScope API，适合本地自用或作为示例项目开源。
+> 仅依赖 Flask + SQLite + DashScope API
 
 ---
 
