@@ -1,4 +1,5 @@
 import json
+import math
 
 
 def insert_note(db, title, path):
@@ -24,8 +25,8 @@ def insert_question_batch(db, note_id, questions):
             continue
 
         cur.execute(
-            'INSERT INTO questions (note_id, knowledge_tag, q_type, content, options, answer, analysis, difficulty) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO questions (note_id, knowledge_tag, q_type, content, options, answer, analysis, difficulty, case_material) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (
                 note_id,
                 q.get('knowledge_tag', ''),
@@ -35,6 +36,7 @@ def insert_question_batch(db, note_id, questions):
                 q.get('answer', ''),
                 q.get('analysis', ''),
                 q.get('difficulty', ''),
+                q.get('case_material', ''),
             ),
         )
         existing_contents.add(content)
@@ -161,6 +163,79 @@ def get_stats_by_week(db):
     return result
 
 
+def search_questions(db, q='', q_type='', difficulty='', knowledge_tag='', note_id=None, page=1, per_page=20):
+    """全文搜索 + 高级筛选，支持分页。"""
+    cur = db.cursor()
+    conditions = []
+    params = []
+
+    if q:
+        like = f'%{q}%'
+        conditions.append('(content LIKE ? OR answer LIKE ? OR analysis LIKE ? OR case_material LIKE ? OR knowledge_tag LIKE ?)')
+        params.extend([like, like, like, like, like])
+
+    if q_type:
+        conditions.append('q_type = ?')
+        params.append(q_type)
+
+    if difficulty:
+        conditions.append('difficulty = ?')
+        params.append(difficulty)
+
+    if knowledge_tag:
+        conditions.append('knowledge_tag = ?')
+        params.append(knowledge_tag)
+
+    if note_id is not None:
+        conditions.append('note_id = ?')
+        params.append(note_id)
+
+    where_clause = ' AND '.join(conditions) if conditions else '1=1'
+    count_sql = f'SELECT COUNT(*) FROM questions WHERE {where_clause}'
+    cur.execute(count_sql, tuple(params))
+    total = cur.fetchone()[0]
+
+    offset = (page - 1) * per_page
+    data_sql = f'SELECT * FROM questions WHERE {where_clause} ORDER BY id DESC LIMIT ? OFFSET ?'
+    cur.execute(data_sql, tuple(params) + (per_page, offset))
+    rows = cur.fetchall()
+
+    return {
+        'questions': [_row_to_question_dict(r) for r in rows],
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': math.ceil(total / per_page) if per_page else 0,
+    }
+
+
+def get_stats_by_tag(db):
+    """按知识点标签统计答题情况，返回各标签的答题数、正确数、正确率。"""
+    cur = db.cursor()
+    cur.execute(
+        '''SELECT q.knowledge_tag,
+                  COUNT(a.id) AS total,
+                  SUM(a.is_correct) AS correct
+           FROM questions q
+           JOIN user_answers a ON q.id = a.question_id
+           WHERE q.knowledge_tag != ''
+           GROUP BY q.knowledge_tag
+           ORDER BY total DESC'''
+    )
+    rows = cur.fetchall()
+    tags = []
+    for r in rows:
+        total = r['total'] or 0
+        correct = r['correct'] or 0
+        tags.append({
+            'name': r['knowledge_tag'],
+            'total': total,
+            'correct': correct,
+            'accuracy': correct / total if total else 0,
+        })
+    return {'tags': tags}
+
+
 def get_question_by_id(db, question_id):
     cur = db.cursor()
     cur.execute('SELECT * FROM questions WHERE id = ?', (question_id,))
@@ -199,4 +274,54 @@ def _row_to_question_dict(row):
         'answer': row['answer'],
         'analysis': row['analysis'],
         'difficulty': row['difficulty'],
+        'case_material': row['case_material'] or '',
     }
+
+
+def regenerate_note_questions(db, note_id, questions):
+    """删除 note_id 下原有的题目和作答记录，插入新的题目列表。"""
+    cur = db.cursor()
+    # 删除旧作答记录
+    cur.execute('SELECT id FROM questions WHERE note_id = ?', (note_id,))
+    q_ids = [row['id'] for row in cur.fetchall()]
+    if q_ids:
+        placeholders = ','.join('?' for _ in q_ids)
+        cur.execute(f'DELETE FROM user_answers WHERE question_id IN ({placeholders})', tuple(q_ids))
+    # 删除旧题目
+    cur.execute('DELETE FROM questions WHERE note_id = ?', (note_id,))
+    db.commit()
+    # 插入新题目
+    insert_question_batch(db, note_id, questions)
+    # 返回新题目数量
+    cur.execute('SELECT COUNT(*) FROM questions WHERE note_id = ?', (note_id,))
+    return cur.fetchone()[0]
+
+
+def update_question(db, question_id, **kwargs):
+    """更新指定题目的字段。可更新: content, options, answer, analysis, knowledge_tag, difficulty, q_type。"""
+    allowed = {'content', 'options', 'answer', 'analysis', 'knowledge_tag', 'difficulty', 'q_type', 'case_material'}
+    updates = {}
+    for k, v in kwargs.items():
+        if k in allowed and v is not None:
+            updates[k] = v
+    if not updates:
+        return False
+    # 序列化 options
+    if 'options' in updates and isinstance(updates['options'], list):
+        updates['options'] = json.dumps(updates['options'], ensure_ascii=False)
+    set_clause = ', '.join(f'{k} = ?' for k in updates)
+    values = list(updates.values())
+    values.append(question_id)
+    cur = db.cursor()
+    cur.execute(f'UPDATE questions SET {set_clause} WHERE id = ?', tuple(values))
+    db.commit()
+    return cur.rowcount > 0
+
+
+def delete_question(db, question_id):
+    """删除指定题目及其作答记录。"""
+    cur = db.cursor()
+    cur.execute('DELETE FROM user_answers WHERE question_id = ?', (question_id,))
+    cur.execute('DELETE FROM questions WHERE id = ?', (question_id,))
+    db.commit()
+    return cur.rowcount > 0

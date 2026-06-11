@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>搜索题目 - AI 复习问答系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+      <div class="mx-auto flex w-full items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
+          <div>
+            <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
+            <p class="text-xs text-slate-400">全文搜索 · 高级筛选</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm">
+          <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
+          <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/search" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">搜索</a>
+          <a href="/exam" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">考试</a>
+          <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
+          <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full px-6 py-8 text-sm">
+      <!-- 搜索区 -->
+      <section class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-slate-900/40">
+        <h2 class="mb-4 text-base font-semibold text-slate-50">搜索题目</h2>
+        <div class="space-y-4">
+          <div class="relative">
+            <input
+              id="search-input"
+              type="text"
+              placeholder="搜索题干、答案、解析、知识点..."
+              class="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-10 pr-4 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">🔍</span>
+          </div>
+          <div class="grid gap-3 md:grid-cols-4">
+            <select id="filter-type" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100">
+              <option value="">全部题型</option>
+              <option value="single_choice">单选题</option>
+              <option value="true_false">判断题</option>
+              <option value="short_answer">简答题</option>
+              <option value="case_analysis">案例分析题</option>
+            </select>
+            <select id="filter-difficulty" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100">
+              <option value="">全部难度</option>
+              <option value="easy">容易</option>
+              <option value="medium">中等</option>
+              <option value="hard">困难</option>
+            </select>
+            <select id="filter-tag" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100">
+              <option value="">全部知识点</option>
+            </select>
+            <select id="filter-module" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100">
+              <option value="">全部模块</option>
+            </select>
+          </div>
+          <div class="flex items-center justify-between">
+            <button id="search-btn" class="rounded-lg bg-indigo-500 px-5 py-2 text-xs font-medium text-white hover:bg-indigo-400">
+              搜索
+            </button>
+            <span id="result-count" class="text-xs text-slate-400"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 搜索结果 -->
+      <section id="results" class="space-y-3"></section>
+
+      <!-- 分页 -->
+      <div id="pagination" class="mt-4 flex items-center justify-center gap-2 text-xs"></div>
+    </main>
+
+    <script>
+      let currentPage = 1;
+      let totalPages = 0;
+
+      function typeLabel(t) {
+        const m = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+        return m[t] || t;
+      }
+      function difficultyColor(d) {
+        return d === 'hard' ? 'text-rose-400' : d === 'medium' ? 'text-amber-400' : 'text-emerald-400';
+      }
+
+      async function doSearch(page) {
+        const q = document.getElementById('search-input').value;
+        const q_type = document.getElementById('filter-type').value;
+        const difficulty = document.getElementById('filter-difficulty').value;
+        const knowledge_tag = document.getElementById('filter-tag').value;
+        const note_id = document.getElementById('filter-module').value;
+
+        const params = new URLSearchParams({ q, q_type, difficulty, knowledge_tag, note_id, page: String(page || 1), per_page: '15' });
+        try {
+          const res = await fetch('/api/questions/search?' + params.toString());
+          const data = await res.json();
+
+          document.getElementById('result-count').textContent = `共 ${data.total} 条结果`;
+
+          const container = document.getElementById('results');
+          container.innerHTML = '';
+
+          if (!data.questions || !data.questions.length) {
+            container.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/50 p-8 text-center text-sm text-slate-400">未找到匹配的题目</div>';
+            document.getElementById('pagination').innerHTML = '';
+            return;
+          }
+
+          data.questions.forEach(q => {
+            const div = document.createElement('div');
+            div.className = 'rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm shadow-md';
+
+            let html = `<div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="text-[10px] text-indigo-400 font-medium">#${q.id}</span>
+              <span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">${typeLabel(q.q_type)}</span>
+              <span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 ${difficultyColor(q.difficulty)}">${q.difficulty || '未标注'}</span>
+              <span class="text-[10px] text-slate-400">${q.knowledge_tag || ''}</span>
+            </div>`;
+
+            html += `<div class="text-slate-50 mb-2 leading-relaxed">${q.content}</div>`;
+
+            if (q.case_material) {
+              html += `<details class="mb-2"><summary class="text-[11px] text-indigo-400 cursor-pointer hover:text-indigo-300">📄 查看案例材料</summary>
+                <div class="mt-1 rounded-lg bg-slate-950/60 p-3 text-xs text-slate-300 whitespace-pre-wrap">${q.case_material}</div></details>`;
+            }
+
+            if (q.options && q.options.length) {
+              html += `<div class="mb-2 text-xs text-slate-400">${q.options.join(' ｜ ')}</div>`;
+            }
+
+            html += `<details class="mt-1"><summary class="text-[11px] text-emerald-400 cursor-pointer hover:text-emerald-300">✅ 查看答案与解析</summary>
+              <div class="mt-1 rounded-lg bg-slate-950/60 p-3 text-xs space-y-1">
+                <p class="text-emerald-300">答案：${q.answer || '无'}</p>
+                ${q.analysis ? `<p class="text-slate-300">解析：${q.analysis}</p>` : ''}
+              </div></details>`;
+
+            div.innerHTML = html;
+            container.appendChild(div);
+          });
+
+          // 分页
+          totalPages = data.total_pages || 1;
+          currentPage = data.page || 1;
+          renderPagination();
+        } catch (e) {
+          document.getElementById('results').innerHTML = '<p class="text-rose-400">搜索失败</p>';
+        }
+      }
+
+      function renderPagination() {
+        const el = document.getElementById('pagination');
+        if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+        let html = '';
+        if (currentPage > 1) html += `<button onclick="doSearch(${currentPage - 1})" class="rounded-lg bg-slate-800 px-3 py-1.5 text-slate-300 hover:bg-slate-700">← 上一页</button>`;
+
+        for (let p = Math.max(1, currentPage - 2); p <= Math.min(totalPages, currentPage + 2); p++) {
+          html += `<button onclick="doSearch(${p})" class="rounded-lg px-3 py-1.5 ${p === currentPage ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${p}</button>`;
+        }
+
+        if (currentPage < totalPages) html += `<button onclick="doSearch(${currentPage + 1})" class="rounded-lg bg-slate-800 px-3 py-1.5 text-slate-300 hover:bg-slate-700">下一页 →</button>`;
+        el.innerHTML = html;
+      }
+
+      // Enter 键搜索
+      document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(1); });
+      document.getElementById('search-btn').addEventListener('click', () => doSearch(1));
+
+      // 加载筛选下拉
+      async function loadFilters() {
+        try {
+          const tagRes = await fetch('/api/knowledge_tags');
+          const tagData = await tagRes.json();
+          const tagSel = document.getElementById('filter-tag');
+          (tagData.tags || []).forEach(t => {
+            const opt = document.createElement('option'); opt.value = t; opt.textContent = t;
+            tagSel.appendChild(opt);
+          });
+
+          const modRes = await fetch('/api/notes');
+          const modData = await modRes.json();
+          const modSel = document.getElementById('filter-module');
+          (modData.notes || []).forEach(n => {
+            const opt = document.createElement('option'); opt.value = n.id; opt.textContent = `[${n.id}] ${n.title || '未命名'}`;
+            modSel.appendChild(opt);
+          });
+        } catch (e) { console.error('load filters', e); }
+      }
+      loadFilters();
+    </script>
+  </body>
+</html>

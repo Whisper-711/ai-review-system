@@ -42,6 +42,7 @@ def init_db():
                answer TEXT,
                analysis TEXT,
                difficulty TEXT,
+               case_material TEXT DEFAULT '',
                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
            )'''
     )
@@ -55,6 +56,20 @@ def init_db():
                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
            )'''
     )
+
+    # 迁移：为旧表加 case_material 列（幂等）
+    try:
+        c.execute('ALTER TABLE questions ADD COLUMN case_material TEXT DEFAULT ""')
+    except Exception:
+        pass  # 列已存在
+
+    # 索引
+    try:
+        c.execute('CREATE INDEX IF NOT EXISTS idx_questions_q_type ON questions(q_type)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_questions_knowledge_tag ON questions(knowledge_tag)')
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()

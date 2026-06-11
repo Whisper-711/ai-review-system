@@ -18,6 +18,8 @@
         <nav class="flex items-center gap-3 text-sm">
           <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
           <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/search" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">搜索</a>
+          <a href="/exam" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">考试</a>
           <a href="/wrong" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">错题本</a>
           <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
         </nav>
@@ -30,57 +32,248 @@
           <h2 class="text-base font-semibold text-slate-50">错题本</h2>
           <p class="text-xs text-slate-400">根据历史答题结果自动收集错题，方便集中复习。</p>
         </div>
-        <button
-          id="load"
-          class="inline-flex items-center rounded-lg bg-rose-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-rose-500/40 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-slate-950"
-        >
-          加载错题
-        </button>
+        <div class="flex gap-2">
+          <button
+            id="load"
+            class="inline-flex items-center rounded-lg bg-rose-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-rose-500/40 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50"
+          >
+            <span id="load-text">加载错题</span>
+            <span id="load-spinner" class="hidden ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+          </button>
+          <button
+            id="practice-wrong"
+            class="hidden inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-emerald-500/40 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+          >
+            重新练习这些错题 (<span id="wrong-count">0</span>)
+          </button>
+        </div>
       </section>
 
+      <!-- 错题列表 -->
       <section id="questions" class="space-y-4"></section>
+
+      <!-- 错题练习区（点击"重新练习"后显示） -->
+      <section id="wrong-practice" class="hidden mt-6">
+        <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/70 p-4 shadow-xl shadow-slate-900/40">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-slate-100">错题重新练习</h3>
+            <span id="wp-progress" class="text-xs text-slate-400">1 / 0</span>
+          </div>
+          <div id="wp-question" class="mb-4 text-sm text-slate-200">
+            <p class="text-slate-500">点击"重新练习"开始。</p>
+          </div>
+          <div id="wp-actions" class="space-y-2">
+            <div id="wp-options" class="space-y-1"></div>
+            <textarea id="wp-textarea" rows="3" class="hidden w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="输入你的答案..."></textarea>
+            <div class="flex gap-2">
+              <button id="wp-submit" class="rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-400 disabled:opacity-50">提交答案</button>
+              <button id="wp-next" class="hidden rounded-lg bg-slate-700 px-4 py-2 text-xs text-slate-300 hover:bg-slate-600">下一题</button>
+            </div>
+          </div>
+          <div id="wp-feedback" class="mt-3 hidden rounded-lg bg-slate-950/60 p-3 text-xs"></div>
+        </div>
+      </section>
     </main>
 
     <script>
-    async function loadWrong() {
-      const res = await fetch('/api/review/wrong?limit=50');
-      const data = await res.json();
-      const container = document.getElementById('questions');
-      container.innerHTML = '';
+      let wrongQuestions = [];
+      let wpIndex = 0;
 
-      data.questions.forEach((q) => {
-        const div = document.createElement('article');
-        div.className = 'rounded-2xl border border-rose-500/40 bg-slate-900/70 p-4 shadow-md shadow-rose-500/20';
+      async function loadWrong() {
+        const btn = document.getElementById('load');
+        const text = document.getElementById('load-text');
+        const spinner = document.getElementById('load-spinner');
+        btn.disabled = true;
+        text.textContent = '加载中...';
+        spinner.classList.remove('hidden');
 
-        const title = document.createElement('div');
-        title.className = 'mb-2 text-sm font-medium text-slate-50';
-        title.textContent = `[#${q.id}] (${q.knowledge_tag || '未标注'}) ${q.content}`;
-        div.appendChild(title);
+        try {
+          const res = await fetch('/api/review/wrong?limit=50');
+          const data = await res.json();
+          const container = document.getElementById('questions');
+          container.innerHTML = '';
 
-        if (q.options && q.options.length) {
-          const opts = document.createElement('div');
-          opts.className = 'mb-2 text-xs text-slate-300';
-          opts.textContent = '选项：' + q.options.join(' / ');
-          div.appendChild(opts);
+          wrongQuestions = data.questions || [];
+          const practiceBtn = document.getElementById('practice-wrong');
+          const countSpan = document.getElementById('wrong-count');
+
+          if (!wrongQuestions.length) {
+            container.innerHTML = '<div class="rounded-2xl border border-slate-700 bg-slate-900/60 p-6 text-center text-slate-400">暂无错题，继续练习吧！</div>';
+            practiceBtn.classList.add('hidden');
+            return;
+          }
+
+          countSpan.textContent = wrongQuestions.length;
+          practiceBtn.classList.remove('hidden');
+
+          wrongQuestions.forEach((q) => {
+            const div = document.createElement('article');
+            const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+            div.className = 'rounded-2xl border border-rose-500/40 bg-slate-900/70 p-4 shadow-md shadow-rose-500/20';
+
+            const title = document.createElement('div');
+            title.className = 'mb-2 text-sm font-medium text-slate-50';
+            title.textContent = `[#${q.id}] [${typeMap[q.q_type] || q.q_type}] (${q.knowledge_tag || '未标注'}) ${q.content}`;
+            div.appendChild(title);
+
+            if (q.options && q.options.length) {
+              const opts = document.createElement('div');
+              opts.className = 'mb-2 text-xs text-slate-300';
+              opts.textContent = '选项：' + q.options.join(' ｜ ');
+              div.appendChild(opts);
+            }
+
+            const ans = document.createElement('div');
+            ans.className = 'mb-1 text-xs text-emerald-300';
+            ans.textContent = '标准答案：' + q.answer;
+            div.appendChild(ans);
+
+            if (q.analysis) {
+              const ana = document.createElement('div');
+              ana.className = 'text-xs text-slate-300';
+              ana.textContent = '解析：' + q.analysis;
+              div.appendChild(ana);
+            }
+
+            container.appendChild(div);
+          });
+        } catch (e) {
+          document.getElementById('questions').innerHTML = '<p class="text-rose-400">加载失败</p>';
+        } finally {
+          btn.disabled = false;
+          text.textContent = '加载错题';
+          spinner.classList.add('hidden');
+        }
+      }
+
+      function startWrongPractice() {
+        if (!wrongQuestions.length) return;
+        wpIndex = 0;
+        document.getElementById('wrong-practice').classList.remove('hidden');
+        document.getElementById('wp-next').classList.add('hidden');
+        document.getElementById('wp-feedback').classList.add('hidden');
+        showWpQuestion();
+      }
+
+      function showWpQuestion() {
+        const q = wrongQuestions[wpIndex];
+        const qEl = document.getElementById('wp-question');
+        const progress = document.getElementById('wp-progress');
+        const nextBtn = document.getElementById('wp-next');
+        const submitBtn = document.getElementById('wp-submit');
+        const feedback = document.getElementById('wp-feedback');
+
+        nextBtn.classList.add('hidden');
+        feedback.classList.add('hidden');
+        submitBtn.disabled = false;
+        progress.textContent = `${wpIndex + 1} / ${wrongQuestions.length}`;
+
+        const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+        qEl.innerHTML = `<span class="text-indigo-400 text-xs">[${typeMap[q.q_type] || q.q_type}] ${q.knowledge_tag || ''}</span><br>${q.content}`;
+
+        const optContainer = document.getElementById('wp-options');
+        const textarea = document.getElementById('wp-textarea');
+        optContainer.innerHTML = '';
+        textarea.classList.add('hidden');
+        textarea.value = '';
+
+        if (q.options && q.options.length && q.q_type !== 'short_answer') {
+          optContainer.classList.remove('hidden');
+          q.options.forEach((opt) => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 hover:border-indigo-500 cursor-pointer';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'wp-answer';
+            radio.value = opt;
+            label.appendChild(radio);
+            const span = document.createElement('span');
+            span.textContent = opt;
+            label.appendChild(span);
+            optContainer.appendChild(label);
+          });
+        } else {
+          optContainer.classList.add('hidden');
+          textarea.classList.remove('hidden');
+        }
+      }
+
+      async function submitWpAnswer() {
+        const q = wrongQuestions[wpIndex];
+        const submitBtn = document.getElementById('wp-submit');
+        const nextBtn = document.getElementById('wp-next');
+        const feedback = document.getElementById('wp-feedback');
+
+        let answer = '';
+        if (q.options && q.options.length && q.q_type !== 'short_answer') {
+          const checked = document.querySelector('input[name="wp-answer"]:checked');
+          if (!checked) { alert('请选择一个选项'); return; }
+          answer = checked.value;
+        } else {
+          answer = document.getElementById('wp-textarea').value;
+          if (!answer.trim()) { alert('请输入答案'); return; }
         }
 
-        const ans = document.createElement('div');
-        ans.className = 'mb-1 text-xs text-emerald-300';
-        ans.textContent = '标准答案：' + q.answer;
-        div.appendChild(ans);
+        submitBtn.disabled = true;
+        try {
+          const resp = await fetch('/api/answers/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question_id: q.id, user_answer: answer }),
+          });
+          const result = await resp.json();
 
-        if (q.analysis) {
-          const ana = document.createElement('div');
-          ana.className = 'text-xs text-slate-300';
-          ana.textContent = '解析：' + q.analysis;
-          div.appendChild(ana);
+          let html = '';
+          if (result.is_correct) {
+            html += '<p class="text-emerald-400 font-medium">✅ 回答正确！</p>';
+          } else {
+            html += '<p class="text-rose-400 font-medium">❌ 回答有误</p>';
+          }
+          if (result.score !== undefined && q.q_type === 'short_answer') {
+            html += `<p class="text-slate-300 mt-1">评分：${result.score} / 100</p>`;
+          }
+          if (result.comment) {
+            html += `<p class="text-slate-300 mt-1">点评：${result.comment}</p>`;
+          }
+          html += `<p class="text-emerald-300 mt-1">标准答案：${result.standard_answer || q.answer}</p>`;
+          if (result.analysis || q.analysis) {
+            html += `<p class="text-slate-300 mt-1">解析：${result.analysis || q.analysis}</p>`;
+          }
+
+          feedback.innerHTML = html;
+          feedback.classList.remove('hidden');
+
+          if (wpIndex < wrongQuestions.length - 1) {
+            nextBtn.classList.remove('hidden');
+          } else {
+            nextBtn.textContent = '完成';
+            nextBtn.onclick = () => {
+              document.getElementById('wrong-practice').classList.add('hidden');
+              loadWrong();
+            };
+            nextBtn.classList.remove('hidden');
+          }
+        } catch (e) {
+          feedback.innerHTML = '<p class="text-rose-400">提交失败</p>';
+          feedback.classList.remove('hidden');
+          submitBtn.disabled = false;
         }
+      }
 
-        container.appendChild(div);
-      });
-    }
+      function nextWpQuestion() {
+        wpIndex++;
+        document.getElementById('wp-next').classList.add('hidden');
+        document.getElementById('wp-feedback').classList.add('hidden');
+        document.getElementById('wp-submit').disabled = false;
+        document.getElementById('wp-next').onclick = nextWpQuestion;
+        document.getElementById('wp-next').textContent = '下一题';
+        showWpQuestion();
+      }
 
-    document.getElementById('load').addEventListener('click', loadWrong);
-  </script>
+      document.getElementById('load').addEventListener('click', loadWrong);
+      document.getElementById('practice-wrong').addEventListener('click', startWrongPractice);
+      document.getElementById('wp-submit').addEventListener('click', submitWpAnswer);
+      document.getElementById('wp-next').addEventListener('click', nextWpQuestion);
+    </script>
   </body>
 </html>

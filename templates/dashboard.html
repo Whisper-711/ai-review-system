@@ -13,12 +13,14 @@
           <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
           <div>
             <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
-            <p class="text-xs text-slate-400">学习数据总览与每周正确率</p>
+            <p class="text-xs text-slate-400">学习数据总览 · 知识点掌握度</p>
           </div>
         </div>
         <nav class="flex items-center gap-3 text-sm">
           <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
           <a href="/practice" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">练习</a>
+          <a href="/search" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">搜索</a>
+          <a href="/exam" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">考试</a>
           <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
           <a href="/dashboard" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">数据面板</a>
         </nav>
@@ -26,13 +28,22 @@
     </header>
 
     <main class="mx-auto w-full px-6 py-8 text-sm">
-      <section class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
+      <!-- 总体数据 -->
+      <section class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-slate-900/40">
         <h2 class="mb-2 text-base font-semibold text-slate-50">总体数据</h2>
-        <p id="summary" class="text-xs text-slate-300"></p>
+        <p id="summary" class="text-sm text-slate-300"></p>
       </section>
 
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
-        <h3 class="mb-2 text-sm font-semibold text-slate-100">每周正确率</h3>
+      <!-- 知识点雷达图 -->
+      <section id="tag-section" class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-slate-900/40">
+        <h2 class="mb-3 text-base font-semibold text-slate-50">📊 知识点掌握度</h2>
+        <div id="chart-radar" class="h-96"></div>
+        <div id="tag-warnings" class="mt-3 space-y-1"></div>
+      </section>
+
+      <!-- 每周正确率 -->
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-slate-900/40">
+        <h3 class="mb-2 text-sm font-semibold text-slate-100">每周正确率趋势</h3>
         <div id="chart-week" class="h-80"></div>
       </section>
     </main>
@@ -45,24 +56,81 @@
       const summary = document.getElementById('summary');
       summary.textContent = `总答题数：${data.total_answers}，正确数：${data.correct_answers}，总体正确率：${(data.accuracy * 100).toFixed(1)}%`;
 
+      // 每周趋势
       const weeks = (data.by_week || []).map((w) => w.week || '未知');
       const weekAcc = (data.by_week || []).map((w) => w.accuracy);
-
       const weekChart = echarts.init(document.getElementById('chart-week'));
       weekChart.setOption({
         tooltip: { formatter: (p) => `${p.name}<br/>正确率：${(p.value * 100).toFixed(1)}%` },
-        xAxis: { type: 'category', data: weeks, axisLabel: { rotate: 45 } },
-        yAxis: { type: 'value', max: 1, axisLabel: { formatter: (v) => `${(v * 100).toFixed(0)}%` } },
-        series: [
-          {
-            name: '正确率',
-            type: 'line',
-            smooth: true,
-            data: weekAcc,
-            areaStyle: {},
-          },
-        ],
+        xAxis: { type: 'category', data: weeks, axisLabel: { rotate: 45, color: '#94a3b8' } },
+        yAxis: { type: 'value', max: 1, axisLabel: { formatter: (v) => `${(v * 100).toFixed(0)}%`, color: '#94a3b8' } },
+        grid: { bottom: 60 },
+        series: [{
+          name: '正确率', type: 'line', smooth: true, data: weekAcc,
+          areaStyle: { color: 'rgba(99, 102, 241, 0.2)' },
+          lineStyle: { color: '#6366f1' },
+          itemStyle: { color: '#6366f1' },
+        }],
       });
+
+      // 知识点雷达图
+      const tagRes = await fetch('/api/stats/by_tag');
+      const tagData = await tagRes.json();
+      const tags = tagData.tags || [];
+
+      if (tags.length === 0) {
+        document.getElementById('chart-radad').innerHTML = '<p class="text-slate-400 text-center py-8">暂无知识点数据，多做练习后会自动分析。</p>';
+        return;
+      }
+
+      const tagNames = tags.map(t => t.name);
+      const tagAcc = tags.map(t => t.accuracy);
+
+      // 找出薄弱知识点
+      const warnings = document.getElementById('tag-warnings');
+      warnings.innerHTML = '';
+      tags.forEach(t => {
+        if (t.accuracy < 0.4 && t.total >= 2) {
+          const w = document.createElement('div');
+          w.className = 'flex items-center gap-2 text-xs text-rose-400 bg-rose-950/40 rounded-lg px-3 py-1.5';
+          w.innerHTML = `⚠️ <strong>${t.name}</strong> 正确率仅 ${(t.accuracy * 100).toFixed(0)}%（${t.correct}/${t.total}），建议重点复习！`;
+          warnings.appendChild(w);
+        }
+      });
+
+      const radarChart = echarts.init(document.getElementById('chart-radar'));
+      radarChart.setOption({
+        tooltip: {
+          formatter: (p) => {
+            const idx = p.value[0];
+            const t = tags[idx] || {};
+            return `${t.name}<br/>正确率：${(t.accuracy * 100).toFixed(1)}%<br/>答题数：${t.total}`;
+          }
+        },
+        radar: {
+          indicator: tagNames.map((name, i) => ({
+            name: name,
+            max: 1,
+            color: tags[i].accuracy < 0.4 ? '#f43f5e' : '#e2e8f0',
+          })),
+          radius: '65%',
+          shape: 'circle',
+          splitArea: { areaStyle: { color: ['rgba(99,102,241,0.02)', 'rgba(99,102,241,0.05)'] } },
+          axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
+          splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
+        },
+        series: [{
+          type: 'radar',
+          data: [{ value: tagAcc, name: '掌握度' }],
+          symbol: 'none',
+          lineStyle: { color: '#6366f1', width: 2 },
+          areaStyle: { color: 'rgba(99, 102, 241, 0.3)' },
+          itemStyle: { color: '#6366f1' },
+        }],
+      });
+
+      // 窗口变化自适应
+      window.addEventListener('resize', () => { radarChart.resize(); weekChart.resize(); });
     }
 
     loadStats();

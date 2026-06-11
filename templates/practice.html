@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <title>对话练习 - AI 复习问答系统</title>
+    <title>练习 - AI 复习问答系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="min-h-screen bg-slate-950 text-slate-100">
@@ -12,12 +12,14 @@
           <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold">AI</span>
           <div>
             <h1 class="text-sm font-semibold text-slate-100">AI 复习问答系统</h1>
-            <p class="text-xs text-slate-400">基于你的笔记，一问一答对话式刷题</p>
+            <p class="text-xs text-slate-400">基于笔记，一问一答对话式刷题</p>
           </div>
         </div>
         <nav class="flex items-center gap-3 text-sm">
           <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">上传笔记</a>
-          <a href="/practice" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">对话练习</a>
+          <a href="/practice" class="rounded-md bg-slate-800 px-3 py-1.5 text-indigo-300">练习</a>
+          <a href="/search" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">搜索</a>
+          <a href="/exam" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">考试</a>
           <a href="/wrong" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">错题本</a>
           <a href="/dashboard" class="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800">数据面板</a>
         </nav>
@@ -26,68 +28,65 @@
 
     <main class="mx-auto flex w-full flex-col gap-4 px-6 py-6 lg:flex-row">
       <!-- 左侧：配置 + 对话区 -->
-      <section class="flex w-full flex-col gap-3 lg:w-2/3">
+      <section class="flex w-full flex-col gap-3 lg:w-[65%]">
         <!-- 配置区 -->
         <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-sm shadow-xl shadow-slate-900/40">
           <div class="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div class="space-y-1">
-              <h2 class="text-base font-semibold text-slate-50">开始一轮对话练习</h2>
-              <p class="text-xs text-slate-400">选择题源模块、题型和本轮题量，系统将按你的配置一问一答出题。</p>
+              <h2 class="text-base font-semibold text-slate-50">开始一轮练习</h2>
+              <p class="text-xs text-slate-400">选择题源模块、题型和本轮题量，系统将按配置一问一答出题。</p>
             </div>
           </div>
-          <div class="grid gap-3 md:grid-cols-3">
+          <div class="grid gap-3 md:grid-cols-4">
             <div class="space-y-1">
-              <label class="block text-[11px] font-medium text-slate-300">题源模块</label>
-              <select
-                id="module-select"
-                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              >
+              <label class="block text-xs font-medium text-slate-300">题源模块</label>
+              <select id="module-select"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
                 <option value="latest">最新模块</option>
                 <option value="all">全部模块</option>
               </select>
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] font-medium text-slate-300">题型</label>
-              <select
-                id="qtype-select"
-                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              >
+              <label class="block text-xs font-medium text-slate-300">题型</label>
+              <select id="qtype-select"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
                 <option value="">全部</option>
                 <option value="single_choice">只做单选题</option>
+                <option value="true_false">只做判断题</option>
                 <option value="short_answer">只做简答题</option>
+                <option value="case_analysis">案例分析题</option>
               </select>
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] font-medium text-slate-300">本轮题量</label>
-              <input
-                type="number"
-                id="limit-input"
-                min="1"
-                value="10"
-                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              />
+              <label class="block text-xs font-medium text-slate-300">知识点</label>
+              <select id="tag-select"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                <option value="">全部知识点</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-medium text-slate-300">本轮题量</label>
+              <input type="number" id="limit-input" min="1" value="10"
+                class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
             </div>
           </div>
           <div class="mt-3 flex items-center justify-between">
-            <button
-              id="load"
-              class="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-indigo-500/40 hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
-            >
-              开始练习
+            <button id="load"
+              class="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-500/40 hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span id="load-text">开始练习</span>
+              <span id="load-spinner" class="hidden ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
             </button>
-            <p id="session-info" class="text-[11px] text-slate-400"></p>
+            <p id="session-info" class="text-xs text-slate-400"></p>
           </div>
         </div>
 
-        <!-- 对话区 -->
-        <div class="flex-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
-          <h3 class="mb-3 text-sm font-semibold text-slate-100">对话区</h3>
-          <div
-            id="chat"
-            class="flex h-[460px] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-950/60 p-3 text-xs"
-          >
+        <!-- 对话区 — 更大更高 -->
+        <div class="flex-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-slate-900/40">
+          <h3 class="mb-3 text-sm font-semibold text-slate-100">💬 对话区</h3>
+          <div id="chat"
+            class="flex h-[580px] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-950/60 p-4 text-sm">
             <div class="flex justify-start">
-              <div class="max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-100">
+              <div class="max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-4 py-3 text-slate-100 leading-relaxed">
                 <p>你好，我会基于你上传的笔记给你出题。点击上方「开始练习」，我们就从第一题开始。</p>
               </div>
             </div>
@@ -95,18 +94,18 @@
         </div>
       </section>
 
-      <!-- 右侧：当前题目输入与进度 -->
-      <aside class="flex w-full flex-col gap-3 lg:w-1/3">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs shadow-xl shadow-slate-900/40">
+      <!-- 右侧：当前题目 + 进度 — 更宽敞 -->
+      <aside class="flex w-full flex-col gap-3 lg:w-[35%]">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
           <h3 class="mb-2 text-sm font-semibold text-slate-100">当前题目</h3>
-          <div id="current-question" class="space-y-2 text-xs text-slate-200">
-            <p class="text-slate-500">请先点击左侧的「开始练习」。</p>
+          <div id="current-question" class="space-y-3 text-sm text-slate-200 max-h-[400px] overflow-y-auto pr-1">
+            <p class="text-slate-500">请先点击上方的「开始练习」。</p>
           </div>
         </div>
 
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs shadow-xl shadow-slate-900/40">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-slate-900/40">
           <h3 class="mb-2 text-sm font-semibold text-slate-100">本轮进度</h3>
-          <p id="progress" class="text-xs text-slate-300">尚未开始。</p>
+          <p id="progress" class="text-sm text-slate-300">尚未开始。</p>
         </div>
       </aside>
     </main>
@@ -114,14 +113,31 @@
     <script>
       let questions = [];
       let currentIndex = -1;
+      // 追问状态
+      let lastQuestion = null;
+      let lastUserAnswer = '';
+      let lastResult = null;
+      let chatHistory = [];
 
       function appendBotMessage(text) {
         const chat = document.getElementById('chat');
         const wrapper = document.createElement('div');
         wrapper.className = 'flex justify-start';
         const bubble = document.createElement('div');
-        bubble.className = 'max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-100';
+        bubble.className = 'max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-4 py-3 text-slate-100 leading-relaxed whitespace-pre-wrap';
         bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        chat.appendChild(wrapper);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function appendBotHtml(html) {
+        const chat = document.getElementById('chat');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-start';
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[80%] rounded-2xl rounded-bl-sm bg-slate-800 px-4 py-3 text-slate-100 leading-relaxed';
+        bubble.innerHTML = html;
         wrapper.appendChild(bubble);
         chat.appendChild(wrapper);
         chat.scrollTop = chat.scrollHeight;
@@ -132,8 +148,20 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'flex justify-end';
         const bubble = document.createElement('div');
-        bubble.className = 'max-w-[80%] rounded-2xl rounded-br-sm bg-indigo-500 px-3 py-2 text-slate-50';
+        bubble.className = 'max-w-[80%] rounded-2xl rounded-br-sm bg-indigo-500 px-4 py-3 text-slate-50 leading-relaxed whitespace-pre-wrap';
         bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        chat.appendChild(wrapper);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function appendBotFollowUp(text) {
+        const chat = document.getElementById('chat');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-start';
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-700/80 px-4 py-3 text-sm text-emerald-200 leading-relaxed border border-indigo-500/30 whitespace-pre-wrap';
+        bubble.textContent = '💡 ' + text;
         wrapper.appendChild(bubble);
         chat.appendChild(wrapper);
         chat.scrollTop = chat.scrollHeight;
@@ -152,21 +180,41 @@
         const box = document.getElementById('current-question');
         box.innerHTML = '';
         if (!questions.length || currentIndex < 0 || currentIndex >= questions.length) {
-          box.innerHTML = '<p class="text-slate-500">本轮题目已答完，可以重新开始一轮练习。</p>';
+          box.innerHTML = '<p class="text-slate-500 text-sm">本轮题目已答完，可以重新开始一轮练习。</p>';
           return;
         }
 
         const q = questions[currentIndex];
+        lastQuestion = q;
+        const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例分析' };
+        const typeLabel = typeMap[q.q_type] || q.q_type;
 
+        // 题型标签
+        const typeTag = document.createElement('span');
+        typeTag.className = 'mb-2 inline-flex rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300';
+        typeTag.textContent = typeLabel;
+        box.appendChild(typeTag);
+
+        if (q.knowledge_tag) {
+          const tag = document.createElement('span');
+          tag.className = 'mb-2 ml-2 inline-flex rounded-full bg-indigo-900/60 px-2.5 py-1 text-xs text-indigo-300';
+          tag.textContent = q.knowledge_tag;
+          box.appendChild(tag);
+        }
+
+        // 题干
         const title = document.createElement('div');
-        title.className = 'text-slate-100 text-xs mb-2';
-        title.textContent = `[#${q.id}] (${q.knowledge_tag || '未标注'}) ${q.content}`;
+        title.className = 'text-slate-50 text-sm mb-3 leading-relaxed';
+        title.textContent = q.content;
         box.appendChild(title);
 
-        const typeTag = document.createElement('span');
-        typeTag.className = 'mb-2 inline-flex rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300';
-        typeTag.textContent = q.q_type === 'short_answer' ? '简答题' : '单选题';
-        box.appendChild(typeTag);
+        // 案例分析：展示案例材料
+        if (q.q_type === 'case_analysis' && q.case_material) {
+          const matBox = document.createElement('div');
+          matBox.className = 'mb-3 rounded-lg border border-indigo-500/30 bg-indigo-950/40 p-3 text-sm text-slate-300 whitespace-pre-wrap';
+          matBox.innerHTML = `<span class="text-indigo-400 font-medium text-xs">📄 案例材料</span><br>${q.case_material}`;
+          box.appendChild(matBox);
+        }
 
         const form = document.createElement('div');
         form.className = 'mt-3 space-y-2';
@@ -174,10 +222,10 @@
 
         let inputElem = null;
 
-        if (q.options && q.options.length) {
+        if (q.options && q.options.length && q.q_type !== 'case_analysis') {
           q.options.forEach((opt) => {
             const label = document.createElement('label');
-            label.className = 'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 hover:border-indigo-500';
+            label.className = 'flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 cursor-pointer';
             const radio = document.createElement('input');
             radio.type = 'radio';
             radio.name = 'answer';
@@ -190,19 +238,19 @@
           });
         } else {
           inputElem = document.createElement('textarea');
-          inputElem.rows = 4;
+          inputElem.rows = 5;
           inputElem.id = 'answer-textarea';
-          inputElem.className = 'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
-          inputElem.placeholder = '请输入你的回答...';
+          inputElem.className = 'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
+          inputElem.placeholder = q.q_type === 'case_analysis' ? '请结合案例材料，详细分析并回答...' : '请输入你的回答...';
           form.appendChild(inputElem);
         }
 
         const btn = document.createElement('button');
-        btn.textContent = '提交这一题';
-        btn.className = 'mt-2 inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-xs font-medium text-white shadow-sm shadow-emerald-500/40 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950';
+        btn.textContent = '提交答案';
+        btn.className = 'mt-3 inline-flex items-center rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-500/40 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950';
         btn.onclick = async () => {
           let userAnswer = '';
-          if (q.options && q.options.length) {
+          if (q.options && q.options.length && q.q_type !== 'case_analysis') {
             const checked = box.querySelector('input[type=radio][name=answer]:checked');
             if (checked) userAnswer = checked.value;
           } else if (inputElem) {
@@ -214,51 +262,119 @@
             return;
           }
 
+          lastUserAnswer = userAnswer;
           appendUserMessage(userAnswer);
 
           const resp = await fetch('/api/answers/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              question_id: q.id,
-              user_answer: userAnswer,
-            }),
+            body: JSON.stringify({ question_id: q.id, user_answer: userAnswer }),
           });
           const result = await resp.json();
+          lastResult = result;
 
           const isCorrect = !!result.is_correct;
           const score = typeof result.score === 'number' ? result.score : null;
           const comment = result.comment || '';
           const stdAnswer = result.standard_answer || q.answer || '';
           const analysis = result.analysis || q.analysis || '';
+          const subScores = result.sub_scores || {};
 
-          const feedbackLines = [];
-          if (q.q_type === 'short_answer') {
+          // 构建反馈 HTML
+          let feedbackHtml = '';
+
+          if (q.q_type === 'short_answer' || q.q_type === 'case_analysis') {
             const scoreText = score !== null ? `${score} / 100` : 'N/A';
-            feedbackLines.push(
-              (isCorrect ? '✅ 简答题判定：通过。' : '❌ 简答题判定：未通过。') + ` 评分：${scoreText}`
-            );
-            if (comment) {
-              feedbackLines.push('点评：' + comment);
+            const icon = isCorrect ? '✅' : '❌';
+            feedbackHtml += `<p class="text-base">${icon} ${isCorrect ? '通过' : '未通过'} 评分：${scoreText}</p>`;
+            if (comment) feedbackHtml += `<p class="text-slate-300 mt-1">${comment}</p>`;
+
+            // 案例题子评分
+            if (q.q_type === 'case_analysis' && Object.keys(subScores).length) {
+              feedbackHtml += `<div class="mt-2 grid grid-cols-3 gap-2 text-xs">
+                <div class="rounded bg-slate-800/60 p-2 text-center">
+                  <div class="text-slate-400">要点覆盖</div>
+                  <div class="text-emerald-300 font-bold">${Math.round((subScores.coverage || 0) * 100)}%</div>
+                </div>
+                <div class="rounded bg-slate-800/60 p-2 text-center">
+                  <div class="text-slate-400">分析深度</div>
+                  <div class="text-emerald-300 font-bold">${Math.round((subScores.depth || 0) * 100)}%</div>
+                </div>
+                <div class="rounded bg-slate-800/60 p-2 text-center">
+                  <div class="text-slate-400">逻辑清晰</div>
+                  <div class="text-emerald-300 font-bold">${Math.round((subScores.logic || 0) * 100)}%</div>
+                </div>
+              </div>`;
             }
           } else {
-            feedbackLines.push(isCorrect ? '✅ 回答正确！' : '❌ 回答不太对，我们来看看标准答案。');
+            feedbackHtml += isCorrect
+              ? '<p class="text-emerald-400 text-base font-medium">✅ 回答正确！</p>'
+              : '<p class="text-rose-400 text-base font-medium">❌ 回答有误，来看看标准答案。</p>';
           }
 
-          if (stdAnswer) {
-            feedbackLines.push('参考答案：' + stdAnswer);
-          }
-          if (analysis) {
-            feedbackLines.push('解析：' + analysis);
-          }
+          if (stdAnswer) feedbackHtml += `<p class="text-emerald-300 mt-2">📌 参考答案：${stdAnswer}</p>`;
+          if (analysis) feedbackHtml += `<p class="text-slate-300 mt-1">📖 解析：${analysis}</p>`;
 
-          appendBotMessage(feedbackLines.join('\n'));
+          // 追问输入框
+          feedbackHtml += `
+            <div class="mt-3 pt-3 border-t border-slate-700">
+              <p class="text-xs text-indigo-400 mb-1">💬 追问 — 对本题有疑问？</p>
+              <div class="flex gap-2">
+                <input id="followup-input" type="text" placeholder="例如：能展开讲讲吗？" class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                <button onclick="sendFollowUp()" class="rounded-lg bg-indigo-500 px-3 py-2 text-xs text-white hover:bg-indigo-400">追问</button>
+              </div>
+              <div id="followup-reply" class="mt-2 space-y-2"></div>
+            </div>`;
 
+          appendBotHtml(feedbackHtml);
+
+          // 下一题
           currentIndex += 1;
+          localStorage.setItem('practice_index', String(currentIndex));
           updateProgress();
           showCurrentQuestion();
+
+          // 重置追问历史
+          chatHistory = [];
         };
         box.appendChild(btn);
+      }
+
+      // 追问
+      async function sendFollowUp() {
+        const input = document.getElementById('followup-input');
+        const replyBox = document.getElementById('followup-reply');
+        const msg = input.value.trim();
+        if (!msg || !lastQuestion) return;
+
+        input.disabled = true;
+        appendUserMessage('📎 追问：' + msg);
+
+        chatHistory.push({ role: 'user', content: msg });
+
+        try {
+          const resp = await fetch(`/api/questions/${lastQuestion.id}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_message: msg,
+              user_answer: lastUserAnswer,
+              chat_history: chatHistory.slice(-6),
+            }),
+          });
+          const data = await resp.json();
+          const reply = data.reply || '抱歉，暂时无法回答。';
+
+          chatHistory.push({ role: 'assistant', content: reply });
+          appendBotFollowUp(reply);
+          input.value = '';
+          replyBox.innerHTML = '';
+        } catch (e) {
+          appendBotMessage('追问失败，请稍后再试。');
+        } finally {
+          input.disabled = false;
+          input.focus();
+        }
       }
 
       async function fetchNotes() {
@@ -266,78 +382,148 @@
           const res = await fetch('/api/notes');
           const data = await res.json();
           const select = document.getElementById('module-select');
-
-          // 保留默认的 "最新模块" 和 "全部模块"
-          while (select.options.length > 2) {
-            select.remove(2);
-          }
-
+          while (select.options.length > 2) select.remove(2);
           (data.notes || []).forEach((n) => {
             const opt = document.createElement('option');
             opt.value = String(n.id);
             opt.textContent = `[${n.id}] ${n.title || '未命名笔记'}`;
             select.appendChild(opt);
           });
-        } catch (e) {
-          console.error('加载模块列表失败', e);
-        }
+        } catch (e) { console.error(e); }
+      }
+
+      async function fetchTags() {
+        try {
+          const res = await fetch('/api/knowledge_tags');
+          const data = await res.json();
+          const select = document.getElementById('tag-select');
+          (data.tags || []).forEach((tag) => {
+            const opt = document.createElement('option');
+            opt.value = tag;
+            opt.textContent = tag;
+            select.appendChild(opt);
+          });
+        } catch (e) { console.error(e); }
       }
 
       async function loadQuestions() {
+        const loadBtn = document.getElementById('load');
+        const loadText = document.getElementById('load-text');
+        const loadSpinner = document.getElementById('load-spinner');
+        loadBtn.disabled = true;
+        loadText.textContent = '加载中...';
+        loadSpinner.classList.remove('hidden');
+
         const moduleSelect = document.getElementById('module-select');
         const qtypeSelect = document.getElementById('qtype-select');
         const limitInput = document.getElementById('limit-input');
 
         const params = new URLSearchParams();
-
         const limitVal = parseInt(limitInput.value || '10', 10);
         params.append('limit', String(isNaN(limitVal) || limitVal <= 0 ? 10 : limitVal));
 
         const moduleVal = moduleSelect.value;
-        if (moduleVal === 'latest') {
-          params.append('scope', 'latest');
-        } else if (moduleVal === 'all') {
-          // 不加 note_id / scope，表示所有模块
-        } else {
-          params.append('note_id', moduleVal);
-        }
+        if (moduleVal === 'latest') params.append('scope', 'latest');
+        else if (moduleVal !== 'all') params.append('note_id', moduleVal);
 
         const qtypeVal = qtypeSelect.value;
-        if (qtypeVal) {
-          params.append('q_type', qtypeVal);
-        }
+        if (qtypeVal) params.append('q_type', qtypeVal);
 
-        const res = await fetch('/api/questions/by_knowledge?' + params.toString());
-        const data = await res.json();
+        const tagVal = document.getElementById('tag-select').value;
+        if (tagVal) params.append('knowledge_tags', tagVal);
 
-        questions = data.questions || [];
-        currentIndex = 0;
+        try {
+          const res = await fetch('/api/questions/by_knowledge?' + params.toString());
+          const data = await res.json();
+          questions = data.questions || [];
+          currentIndex = 0;
 
-        const info = document.getElementById('session-info');
-        if (!questions.length) {
-          info.textContent = '没有找到题目，请先在首页上传笔记并生成题库，或调整知识点标签。';
+          if (questions.length > 0) {
+            localStorage.setItem('practice_questions', JSON.stringify(questions.map(q => q.id)));
+            localStorage.setItem('practice_index', '0');
+          }
+
+          const info = document.getElementById('session-info');
+          if (!questions.length) {
+            info.textContent = '没有找到题目，请先在首页上传笔记并生成题库。';
+            const chat = document.getElementById('chat');
+            chat.innerHTML = '';
+            appendBotMessage('当前没有可用题目，请先在首页上传笔记并生成题目。');
+            document.getElementById('current-question').innerHTML = '<p class="text-slate-500 text-sm">暂无题目。</p>';
+            updateProgress();
+            return;
+          }
+
+          info.textContent = `本轮已载入 ${questions.length} 道题`;
           const chat = document.getElementById('chat');
           chat.innerHTML = '';
-          appendBotMessage('当前没有可用题目，请先在首页上传笔记并生成题目。');
-          document.getElementById('current-question').innerHTML = '<p class="text-slate-500">暂无题目。</p>';
+          appendBotMessage(`好的，本轮共 ${questions.length} 道题，下面是第 1 题：`);
           updateProgress();
-          return;
+          showCurrentQuestion();
+        } finally {
+          loadBtn.disabled = false;
+          loadText.textContent = '开始练习';
+          loadSpinner.classList.add('hidden');
         }
-
-        info.textContent = `本轮已载入 ${questions.length} 道题，将按顺序一问一答。`;
-
-        const chat = document.getElementById('chat');
-        chat.innerHTML = '';
-        appendBotMessage('好的，我们开始这一轮练习。下面是第 1 题：');
-
-        updateProgress();
-        showCurrentQuestion();
       }
 
       document.getElementById('load').addEventListener('click', loadQuestions);
 
-      // 进入页面时先拉一次模块列表
+      function checkResume() {
+        const savedIds = localStorage.getItem('practice_questions');
+        const savedIndex = localStorage.getItem('practice_index');
+        if (!savedIds || !savedIndex) return;
+        const ids = JSON.parse(savedIds);
+        const idx = parseInt(savedIndex, 10);
+        if (!Array.isArray(ids) || ids.length === 0 || idx <= 0 || idx >= ids.length) return;
+
+        const chat = document.getElementById('chat');
+        const resumeDiv = document.createElement('div');
+        resumeDiv.className = 'flex justify-center';
+        resumeDiv.innerHTML = `
+          <div class="rounded-lg border border-indigo-500/50 bg-slate-800/80 p-3 text-center text-sm text-slate-200 max-w-sm">
+            检测到未完成的练习（${idx}/${ids.length} 题）
+            <div class="mt-2 flex gap-2 justify-center">
+              <button onclick="resumePractice()" class="rounded-lg bg-indigo-500 px-3 py-1.5 text-white text-sm hover:bg-indigo-400">继续练习</button>
+              <button onclick="clearPractice()" class="rounded-lg bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600">重新开始</button>
+            </div>
+          </div>`;
+        chat.appendChild(resumeDiv);
+      }
+
+      async function resumePractice() {
+        const savedIds = localStorage.getItem('practice_questions');
+        const savedIndex = localStorage.getItem('practice_index');
+        if (!savedIds || !savedIndex) return;
+        const ids = JSON.parse(savedIds);
+        currentIndex = parseInt(savedIndex, 10);
+        const params = new URLSearchParams();
+        params.append('limit', String(ids.length));
+        try {
+          const res = await fetch('/api/questions/by_knowledge?' + params.toString());
+          const data = await res.json();
+          const allQuestions = data.questions || [];
+          questions = ids.map(id => allQuestions.find(q => q.id === id)).filter(Boolean);
+          if (questions.length === 0) { alert('题目数据已变化，请重新开始'); clearPractice(); return; }
+          currentIndex = Math.min(currentIndex, questions.length - 1);
+          const chat = document.getElementById('chat');
+          chat.innerHTML = '';
+          appendBotMessage('已恢复上次进度，继续练习！');
+          updateProgress();
+          showCurrentQuestion();
+          document.getElementById('session-info').textContent = `已恢复上次练习（${questions.length} 道题）`;
+        } catch (e) { alert('恢复失败'); clearPractice(); }
+      }
+
+      function clearPractice() {
+        localStorage.removeItem('practice_questions');
+        localStorage.removeItem('practice_index');
+        location.reload();
+      }
+
       fetchNotes();
+      fetchTags();
+      setTimeout(checkResume, 500);
     </script>
   </body>
 </html>
