@@ -64,7 +64,7 @@
         tooltip: { formatter: (p) => `${p.name}<br/>正确率：${(p.value * 100).toFixed(1)}%` },
         xAxis: { type: 'category', data: weeks, axisLabel: { rotate: 45, color: '#94a3b8' } },
         yAxis: { type: 'value', max: 1, axisLabel: { formatter: (v) => `${(v * 100).toFixed(0)}%`, color: '#94a3b8' } },
-        grid: { bottom: 60 },
+        grid: { bottom: 70, top: 20, left: 50, right: 20 },
         series: [{
           name: '正确率', type: 'line', smooth: true, data: weekAcc,
           areaStyle: { color: 'rgba(99, 102, 241, 0.2)' },
@@ -79,7 +79,7 @@
       const tags = tagData.tags || [];
 
       if (tags.length === 0) {
-        document.getElementById('chart-radad').innerHTML = '<p class="text-slate-400 text-center py-8">暂无知识点数据，多做练习后会自动分析。</p>';
+        document.getElementById('chart-radar').innerHTML = '<p class="text-slate-400 text-center py-8">暂无知识点数据，多做练习后会自动分析。</p>';
         return;
       }
 
@@ -101,8 +101,10 @@
       const radarChart = echarts.init(document.getElementById('chart-radar'));
       radarChart.setOption({
         tooltip: {
+          trigger: 'item',
           formatter: (p) => {
-            const idx = p.value[0];
+            // p.name = indicator name (tag name), p.value = [v0, v1, ...]
+            const idx = tagNames.indexOf(p.name);
             const t = tags[idx] || {};
             return `${t.name}<br/>正确率：${(t.accuracy * 100).toFixed(1)}%<br/>答题数：${t.total}`;
           }
@@ -113,11 +115,18 @@
             max: 1,
             color: tags[i].accuracy < 0.4 ? '#f43f5e' : '#e2e8f0',
           })),
-          radius: '65%',
+          radius: '60%',
           shape: 'circle',
+          nameTextStyle: {
+            color: '#cbd5e1',
+            fontSize: 11,
+            width: 60,
+            overflow: 'break',
+          },
           splitArea: { areaStyle: { color: ['rgba(99,102,241,0.02)', 'rgba(99,102,241,0.05)'] } },
           axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
           splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
+          scale: true,
         },
         series: [{
           type: 'radar',

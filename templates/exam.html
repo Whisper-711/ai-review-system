@@ -5,10 +5,6 @@
     <title>考试模式 - AI 复习问答系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      .exam-full { display: none; }
-      .exam-full.active { display: flex; }
-      .exam-config { display: block; }
-      .exam-config.hidden { display: none; }
       .timer-warning { color: #f43f5e; animation: pulse 1s infinite; }
       @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
@@ -35,11 +31,10 @@
     </header>
 
     <!-- ========== 配置页 ========== -->
-    <main id="exam-config" class="exam-config mx-auto w-full px-6 py-8 text-sm">
+    <main id="exam-config" class="mx-auto w-full px-6 py-8 text-sm">
       <section class="mx-auto max-w-2xl rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl shadow-slate-900/40">
         <h2 class="mb-1 text-lg font-semibold text-slate-50">📝 模拟考试</h2>
         <p class="mb-6 text-xs text-slate-400">按配置自动组卷，限时答题，自动评分，生成成绩报告。</p>
-
         <div class="space-y-4">
           <div class="grid gap-4 md:grid-cols-2">
             <div>
@@ -85,9 +80,8 @@
     </main>
 
     <!-- ========== 考试界面 ========== -->
-    <div id="exam-full" class="exam-full fixed inset-0 z-50 flex flex-col bg-slate-950">
-      <!-- 顶部栏 -->
-      <header class="flex items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4 py-2 text-sm">
+    <div id="exam-full" class="hidden fixed inset-0 z-50 flex-col bg-slate-950">
+      <header class="flex items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4 py-2 text-sm shrink-0">
         <div class="flex items-center gap-3">
           <span class="text-indigo-400 font-semibold">📝 考试模式</span>
           <span id="exam-progress" class="text-slate-400 text-xs"></span>
@@ -97,13 +91,10 @@
           <button id="submit-exam" class="rounded-lg bg-emerald-500 px-4 py-1.5 text-xs text-white hover:bg-emerald-400">交卷</button>
         </div>
       </header>
-
-      <div class="flex flex-1 overflow-hidden">
-        <!-- 左侧题号导航 -->
-        <aside class="w-20 overflow-y-auto border-r border-slate-800 bg-slate-900/60 p-2">
+      <div class="flex flex-1 min-h-0">
+        <aside class="w-20 overflow-y-auto border-r border-slate-800 bg-slate-900/60 p-2 shrink-0">
           <div id="question-nav" class="grid grid-cols-3 gap-1"></div>
         </aside>
-        <!-- 答题区 -->
         <main class="flex-1 overflow-y-auto p-6">
           <div id="exam-questions" class="space-y-6 max-w-3xl mx-auto"></div>
         </main>
@@ -136,39 +127,48 @@
       let examTimeLeft = 0;
       let examSubmitted = false;
 
+      function showExam() {
+        document.getElementById('exam-config').classList.add('hidden');
+        document.getElementById('exam-full').classList.remove('hidden');
+        document.getElementById('exam-full').classList.add('flex');
+        document.getElementById('exam-report').classList.add('hidden');
+      }
+
+      function hideExam() {
+        document.getElementById('exam-full').classList.add('hidden');
+        document.getElementById('exam-full').classList.remove('flex');
+      }
+
       async function startExam() {
-        const count = parseInt(document.getElementById('exam-count').value) || 15;
+        const count = Math.min(Math.max(parseInt(document.getElementById('exam-count').value) || 15, 1), 50);
         const q_type = document.getElementById('exam-type').value;
         const difficulty = document.getElementById('exam-difficulty').value;
         const note_id = document.getElementById('exam-module').value;
 
-        const params = new URLSearchParams({ question_count: String(count) });
-        if (q_type) params.append('q_type', q_type);
-        if (difficulty) params.append('difficulty', difficulty);
-        if (note_id) params.append('note_id', note_id);
+        const params = new URLSearchParams();
+        params.set('question_count', String(count));
+        if (q_type) params.set('q_type', q_type);
+        if (difficulty) params.set('difficulty', difficulty);
+        if (note_id) params.set('note_id', note_id);
 
         try {
           const res = await fetch('/api/exam/start?' + params.toString());
+          if (!res.ok) { alert('组卷失败: ' + res.status); return; }
           const data = await res.json();
           examQuestions = data.questions || [];
 
           if (!examQuestions.length) {
-            alert('没有匹配的题目，请调整配置');
+            alert('没有匹配的题目，请调整配置或先在首页上传笔记生成题目');
             return;
           }
 
           examAnswers = {};
           examSubmitted = false;
-
-          // 显示考试界面
-          document.getElementById('exam-config').classList.add('hidden');
-          document.getElementById('exam-full').classList.add('active');
-          document.getElementById('exam-report').classList.add('hidden');
-
+          showExam();
           renderExam();
           startTimer();
         } catch (e) {
-          alert('组卷失败');
+          alert('组卷失败: ' + e.message);
         }
       }
 
@@ -185,32 +185,31 @@
           navBtn.textContent = idx + 1;
           navBtn.dataset.idx = idx;
           navBtn.onclick = () => {
-            document.getElementById(`q-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('q-' + idx)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           };
           nav.appendChild(navBtn);
 
           // 题目卡片
           const card = document.createElement('div');
-          card.id = `q-${idx}`;
+          card.id = 'q-' + idx;
           card.className = 'rounded-xl border border-slate-700 bg-slate-900/60 p-5';
 
           const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
           const diffMap = { easy: '容易', medium: '中等', hard: '困难' };
 
-          card.innerHTML = `
-            <div class="flex items-center gap-2 mb-3">
-              <span class="text-indigo-400 text-xs font-bold">#${idx + 1}</span>
-              <span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">${typeMap[q.q_type] || q.q_type}</span>
-              <span class="text-[10px] text-slate-400">${q.knowledge_tag || ''}</span>
-              <span class="text-[10px] text-slate-500">${diffMap[q.difficulty] || ''}</span>
-            </div>
-            <div class="text-slate-50 text-sm mb-3 leading-relaxed">${q.content}</div>
-          `;
+          let html = '<div class="flex items-center gap-2 mb-3 flex-wrap">';
+          html += '<span class="text-indigo-400 text-xs font-bold">#' + (idx + 1) + '</span>';
+          html += '<span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">' + (typeMap[q.q_type] || q.q_type) + '</span>';
+          if (q.knowledge_tag) html += '<span class="text-[10px] text-slate-400">' + q.knowledge_tag + '</span>';
+          if (q.difficulty) html += '<span class="text-[10px] text-slate-500">' + (diffMap[q.difficulty] || q.difficulty) + '</span>';
+          html += '</div>';
+          html += '<div class="text-slate-50 text-sm mb-3 leading-relaxed">' + (q.content || '') + '</div>';
+          card.innerHTML = html;
 
-          if (q.case_material) {
+          if (q.case_material && q.case_material.trim()) {
             const matDiv = document.createElement('div');
             matDiv.className = 'mb-3 rounded-lg border border-indigo-500/30 bg-indigo-950/40 p-3 text-xs text-slate-300 whitespace-pre-wrap';
-            matDiv.innerHTML = `<span class="text-indigo-400 font-medium text-[11px]">📄 案例材料</span><br>${q.case_material}`;
+            matDiv.innerHTML = '<span class="text-indigo-400 font-medium text-[11px]">📄 案例材料</span><br>' + q.case_material;
             card.appendChild(matDiv);
           }
 
@@ -218,14 +217,14 @@
           answerArea.className = 'space-y-2';
 
           if (q.options && q.options.length && q.q_type !== 'case_analysis') {
-            q.options.forEach(opt => {
+            q.options.forEach(function(opt) {
               const label = document.createElement('label');
               label.className = 'flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 hover:border-indigo-500 cursor-pointer';
               const radio = document.createElement('input');
               radio.type = 'radio';
-              radio.name = `exam-answer-${q.id}`;
+              radio.name = 'exam-answer-' + q.id;
               radio.value = opt;
-              radio.onchange = () => { examAnswers[q.id] = opt; updateNavState(); };
+              radio.onchange = function() { examAnswers[q.id] = opt; updateNavState(); };
               label.appendChild(radio);
               const span = document.createElement('span');
               span.textContent = opt;
@@ -237,7 +236,7 @@
             ta.rows = 4;
             ta.className = 'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
             ta.placeholder = '请输入你的答案...';
-            ta.oninput = () => { examAnswers[q.id] = ta.value; updateNavState(); };
+            ta.oninput = function() { examAnswers[q.id] = ta.value; updateNavState(); };
             answerArea.appendChild(ta);
           }
 
@@ -245,13 +244,13 @@
           container.appendChild(card);
         });
 
-        document.getElementById('exam-progress').textContent = `已答 0 / ${examQuestions.length}`;
+        document.getElementById('exam-progress').textContent = '已答 0 / ' + examQuestions.length;
       }
 
       function updateNavState() {
         const btns = document.querySelectorAll('#question-nav button');
         let answeredCount = 0;
-        examQuestions.forEach((q, idx) => {
+        examQuestions.forEach(function(q, idx) {
           const answered = examAnswers[q.id] && examAnswers[q.id].trim();
           if (answered) answeredCount++;
           if (btns[idx]) {
@@ -260,15 +259,15 @@
               : 'w-8 h-8 rounded text-xs font-medium bg-slate-800 text-slate-400 hover:bg-slate-700';
           }
         });
-        document.getElementById('exam-progress').textContent = `已答 ${answeredCount} / ${examQuestions.length}`;
+        document.getElementById('exam-progress').textContent = '已答 ' + answeredCount + ' / ' + examQuestions.length;
       }
 
       function startTimer() {
-        const minutes = parseInt(document.getElementById('exam-minutes').value) || 30;
+        var minutes = parseInt(document.getElementById('exam-minutes').value) || 30;
         examTimeLeft = minutes * 60;
         updateTimerDisplay();
         if (examTimer) clearInterval(examTimer);
-        examTimer = setInterval(() => {
+        examTimer = setInterval(function() {
           examTimeLeft--;
           updateTimerDisplay();
           if (examTimeLeft <= 0) {
@@ -280,11 +279,13 @@
       }
 
       function updateTimerDisplay() {
-        const el = document.getElementById('exam-timer');
-        const m = Math.floor(examTimeLeft / 60);
-        const s = examTimeLeft % 60;
-        el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        el.className = examTimeLeft <= 120 ? 'text-lg font-mono font-bold timer-warning' : 'text-lg font-mono font-bold text-slate-100';
+        var el = document.getElementById('exam-timer');
+        var m = Math.floor(examTimeLeft / 60);
+        var s = examTimeLeft % 60;
+        el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        el.className = examTimeLeft <= 120
+          ? 'text-lg font-mono font-bold timer-warning'
+          : 'text-lg font-mono font-bold text-slate-100';
       }
 
       async function submitExam() {
@@ -292,86 +293,77 @@
         examSubmitted = true;
         if (examTimer) clearInterval(examTimer);
 
-        const answers = examQuestions.map(q => ({
-          question_id: q.id,
-          user_answer: examAnswers[q.id] || '',
-        }));
+        var answers = examQuestions.map(function(q) {
+          return { question_id: q.id, user_answer: examAnswers[q.id] || '' };
+        });
 
         try {
-          const res = await fetch('/api/exam/submit', {
+          var res = await fetch('/api/exam/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers }),
+            body: JSON.stringify({ answers: answers }),
           });
-          const data = await res.json();
+          if (!res.ok) { alert('交卷失败'); return; }
+          var data = await res.json();
 
-          // 显示报告
-          document.getElementById('exam-full').classList.remove('active');
+          hideExam();
           document.getElementById('exam-report').classList.remove('hidden');
-          document.getElementById('exam-config').classList.add('hidden');
 
-          document.getElementById('report-score').textContent = `${data.score} 分`;
-          document.getElementById('report-summary').textContent =
-            `共 ${data.total} 题，答对 ${data.correct_count} 题`;
+          document.getElementById('report-score').textContent = data.score + ' 分';
+          document.getElementById('report-summary').textContent = '共 ' + data.total + ' 题，答对 ' + data.correct_count + ' 题';
 
-          // 知识点分析
-          const tagList = document.getElementById('report-tag-list');
+          var tagList = document.getElementById('report-tag-list');
           tagList.innerHTML = '';
-          (data.by_tag || []).forEach(t => {
-            const pct = Math.round(t.accuracy * 100);
-            const color = pct < 40 ? 'bg-rose-500' : pct < 70 ? 'bg-amber-500' : 'bg-emerald-500';
-            const row = document.createElement('div');
+          (data.by_tag || []).forEach(function(t) {
+            var pct = Math.round(t.accuracy * 100);
+            var color = pct < 40 ? 'bg-rose-500' : pct < 70 ? 'bg-amber-500' : 'bg-emerald-500';
+            var row = document.createElement('div');
             row.className = 'flex items-center gap-3';
-            row.innerHTML = `
-              <span class="text-xs text-slate-300 w-28 truncate">${t.name}</span>
-              <div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
-                <div class="h-full ${color} rounded-full" style="width:${pct}%"></div>
-              </div>
-              <span class="text-xs text-slate-400 w-16 text-right">${t.correct}/${t.total}</span>
-            `;
+            row.innerHTML = '<span class="text-xs text-slate-300 w-28 truncate">' + t.name + '</span>'
+              + '<div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">'
+              + '<div class="h-full ' + color + ' rounded-full" style="width:' + pct + '%"></div></div>'
+              + '<span class="text-xs text-slate-400 w-16 text-right">' + t.correct + '/' + t.total + '</span>';
             tagList.appendChild(row);
           });
 
-          // 每题详情
-          const detail = document.getElementById('report-detail');
-          detail.innerHTML = '<h3 class="text-sm font-semibold text-slate-100">📋 题目详情</h3>';
-          (data.results || []).forEach(r => {
-            const card = document.createElement('div');
-            const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
-            card.className = `rounded-xl border p-4 text-sm ${r.is_correct ? 'border-emerald-500/40 bg-slate-900/60' : 'border-rose-500/40 bg-slate-900/60'}`;
-            const icon = r.is_correct ? '✅' : '❌';
-            card.innerHTML = `
-              <div class="flex items-center gap-2 mb-2">
-                <span>${icon}</span>
-                <span class="text-[10px] text-indigo-400">#${r.question_id}</span>
-                <span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">${typeMap[r.q_type] || r.q_type}</span>
-                <span class="text-[10px] text-slate-400">${r.knowledge_tag || ''}</span>
-                ${r.score !== undefined ? `<span class="text-[10px] text-slate-400">${r.score}分</span>` : ''}
-              </div>
-              <div class="text-slate-50 mb-2">${r.content}</div>
-              <div class="text-xs text-slate-400">你的答案：${r.user_answer}</div>
-              <div class="text-xs text-emerald-300">标准答案：${r.standard_answer}</div>
-              ${r.analysis ? `<div class="text-xs text-slate-400 mt-1">解析：${r.analysis}</div>` : ''}
-              ${r.comment ? `<div class="text-xs text-amber-300 mt-1">点评：${r.comment}</div>` : ''}
-            `;
+          var detail = document.getElementById('report-detail');
+          detail.innerHTML = '<h3 class="text-sm font-semibold text-slate-100 mb-3">📋 题目详情</h3>';
+          (data.results || []).forEach(function(r) {
+            var typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+            var card = document.createElement('div');
+            card.className = 'rounded-xl border p-4 text-sm ' + (r.is_correct ? 'border-emerald-500/40 bg-slate-900/60' : 'border-rose-500/40 bg-slate-900/60');
+            var icon = r.is_correct ? '✅' : '❌';
+            var html = '<div class="flex items-center gap-2 mb-2 flex-wrap">'
+              + '<span>' + icon + '</span>'
+              + '<span class="text-[10px] text-indigo-400">#' + r.question_id + '</span>'
+              + '<span class="text-[10px] rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">' + (typeMap[r.q_type] || r.q_type) + '</span>'
+              + '<span class="text-[10px] text-slate-400">' + (r.knowledge_tag || '') + '</span>'
+              + (r.score !== undefined ? '<span class="text-[10px] text-slate-400">' + r.score + '分</span>' : '')
+              + '</div>'
+              + '<div class="text-slate-50 mb-2">' + (r.content || '') + '</div>'
+              + '<div class="text-xs text-slate-400">你的答案：' + (r.user_answer || '未作答') + '</div>'
+              + '<div class="text-xs text-emerald-300">标准答案：' + (r.standard_answer || '') + '</div>'
+              + (r.analysis ? '<div class="text-xs text-slate-400 mt-1">解析：' + r.analysis + '</div>' : '')
+              + (r.comment ? '<div class="text-xs text-amber-300 mt-1">点评：' + r.comment + '</div>' : '');
+            card.innerHTML = html;
             detail.appendChild(card);
           });
         } catch (e) {
-          alert('交卷失败');
+          alert('交卷失败: ' + e.message);
         }
       }
 
       document.getElementById('start-exam').addEventListener('click', startExam);
-      document.getElementById('submit-exam').addEventListener('click', () => {
+      document.getElementById('submit-exam').addEventListener('click', function() {
         if (confirm('确定要交卷吗？')) submitExam();
       });
 
-      // 加载模块列表
-      fetch('/api/notes').then(r => r.json()).then(d => {
-        const sel = document.getElementById('exam-module');
-        (d.notes || []).forEach(n => {
-          const opt = document.createElement('option');
-          opt.value = n.id; opt.textContent = `[${n.id}] ${n.title || '未命名'}`;
+      fetch('/api/notes').then(function(r) { return r.json(); }).then(function(d) {
+        var sel = document.getElementById('exam-module');
+        (d.notes || []).forEach(function(n) {
+          var opt = document.createElement('option');
+          opt.value = n.id;
+          opt.textContent = '[' + n.id + '] ' + (n.title || '未命名');
           sel.appendChild(opt);
         });
       });
