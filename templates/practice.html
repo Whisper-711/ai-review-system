@@ -439,7 +439,7 @@
           currentIndex = 0;
 
           if (questions.length > 0) {
-            localStorage.setItem('practice_questions', JSON.stringify(questions.map(q => q.id)));
+            localStorage.setItem('practice_questions', JSON.stringify(questions));
             localStorage.setItem('practice_index', '0');
           }
 
@@ -470,19 +470,21 @@
       document.getElementById('load').addEventListener('click', loadQuestions);
 
       function checkResume() {
-        const savedIds = localStorage.getItem('practice_questions');
+        const saved = localStorage.getItem('practice_questions');
         const savedIndex = localStorage.getItem('practice_index');
-        if (!savedIds || !savedIndex) return;
-        const ids = JSON.parse(savedIds);
+        if (!saved || !savedIndex) return;
+
+        let savedQuestions;
+        try { savedQuestions = JSON.parse(saved); } catch(e) { return; }
         const idx = parseInt(savedIndex, 10);
-        if (!Array.isArray(ids) || ids.length === 0 || idx <= 0 || idx >= ids.length) return;
+        if (!Array.isArray(savedQuestions) || savedQuestions.length === 0 || idx <= 0 || idx >= savedQuestions.length) return;
 
         const chat = document.getElementById('chat');
         const resumeDiv = document.createElement('div');
         resumeDiv.className = 'flex justify-center';
         resumeDiv.innerHTML = `
           <div class="rounded-lg border border-indigo-500/50 bg-slate-800/80 p-3 text-center text-sm text-slate-200 max-w-sm">
-            检测到未完成的练习（${idx}/${ids.length} 题）
+            检测到未完成的练习（${idx}/${savedQuestions.length} 题）
             <div class="mt-2 flex gap-2 justify-center">
               <button onclick="resumePractice()" class="rounded-lg bg-indigo-500 px-3 py-1.5 text-white text-sm hover:bg-indigo-400">继续练习</button>
               <button onclick="clearPractice()" class="rounded-lg bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600">重新开始</button>
@@ -491,28 +493,31 @@
         chat.appendChild(resumeDiv);
       }
 
-      async function resumePractice() {
-        const savedIds = localStorage.getItem('practice_questions');
+      function resumePractice() {
+        const saved = localStorage.getItem('practice_questions');
         const savedIndex = localStorage.getItem('practice_index');
-        if (!savedIds || !savedIndex) return;
-        const ids = JSON.parse(savedIds);
-        currentIndex = parseInt(savedIndex, 10);
-        const params = new URLSearchParams();
-        params.append('limit', String(ids.length));
+        if (!saved || !savedIndex) return;
+
         try {
-          const res = await fetch('/api/questions/by_knowledge?' + params.toString());
-          const data = await res.json();
-          const allQuestions = data.questions || [];
-          questions = ids.map(id => allQuestions.find(q => q.id === id)).filter(Boolean);
-          if (questions.length === 0) { alert('题目数据已变化，请重新开始'); clearPractice(); return; }
+          questions = JSON.parse(saved);
+          currentIndex = parseInt(savedIndex, 10);
+          if (!Array.isArray(questions) || questions.length === 0) {
+            alert('保存的题目数据异常，请重新开始');
+            clearPractice();
+            return;
+          }
           currentIndex = Math.min(currentIndex, questions.length - 1);
+
           const chat = document.getElementById('chat');
           chat.innerHTML = '';
           appendBotMessage('已恢复上次进度，继续练习！');
           updateProgress();
           showCurrentQuestion();
-          document.getElementById('session-info').textContent = `已恢复上次练习（${questions.length} 道题）`;
-        } catch (e) { alert('恢复失败'); clearPractice(); }
+          document.getElementById('session-info').textContent = '已恢复上次练习（' + questions.length + ' 道题）';
+        } catch (e) {
+          alert('恢复失败，请重新开始练习');
+          clearPractice();
+        }
       }
 
       function clearPractice() {

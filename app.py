@@ -233,10 +233,7 @@ def create_app():
         from models import _row_to_question_dict
         questions = [_row_to_question_dict(r) for r in rows]
 
-        if fmt == 'json':
-            return jsonify({'questions': questions, 'count': len(questions)})
-
-        elif fmt == 'txt':
+        if fmt == 'txt':
             lines = []
             for q in questions:
                 type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例'}
@@ -252,24 +249,26 @@ def create_app():
             text = '\n'.join(lines)
             return text, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
-        elif fmt == 'anki':
-            import csv, io
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(['Front', 'Back', 'Tags'])
+        elif fmt == 'md':
+            lines = []
             for q in questions:
                 type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例'}
                 t = type_map.get(q['q_type'], q['q_type'])
-                front = f"[{t}] {q['content']}"
+                lines.append(f'## [{t}] {q["content"]}')
+                lines.append(f'')
+                lines.append(f'- **ID**: #{q["id"]}  ')
+                lines.append(f'- **知识点**: {q["knowledge_tag"] or "未标注"}  ')
+                lines.append(f'- **难度**: {q["difficulty"] or "未标注"}  ')
                 if q.get('options'):
-                    front += '\n' + '\n'.join(q['options'])
-                back = f"答案: {q['answer']}"
+                    lines.append(f'- **选项**: {" | ".join(q["options"])}  ')
+                lines.append(f'- **答案**: {q["answer"]}  ')
                 if q.get('analysis'):
-                    back += f"\n解析: {q['analysis']}"
-                tags = q.get('knowledge_tag', '')
-                writer.writerow([front, back, tags])
-            csv_text = output.getvalue()
-            return csv_text, 200, {'Content-Type': 'text/csv; charset=utf-8'}
+                    lines.append(f'- **解析**: {q["analysis"]}  ')
+                lines.append(f'')
+                lines.append(f'---')
+                lines.append(f'')
+            text = '\n'.join(lines)
+            return text, 200, {'Content-Type': 'text/markdown; charset=utf-8'}
 
         return jsonify({'error': 'unsupported format'}), 400
 
