@@ -236,7 +236,7 @@ def create_app():
         if fmt == 'txt':
             lines = []
             for q in questions:
-                type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例'}
+                type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例', 'fill_blank': '填空'}
                 t = type_map.get(q['q_type'], q['q_type'])
                 lines.append(f"[{t}] #{q['id']} ({q['knowledge_tag']})")
                 lines.append(f"  题干: {q['content']}")
@@ -252,7 +252,7 @@ def create_app():
         elif fmt == 'md':
             lines = []
             for q in questions:
-                type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例'}
+                type_map = {'single_choice': '单选', 'true_false': '判断', 'short_answer': '简答', 'case_analysis': '案例', 'fill_blank': '填空'}
                 t = type_map.get(q['q_type'], q['q_type'])
                 lines.append(f'## [{t}] {q["content"]}')
                 lines.append(f'')
@@ -320,6 +320,10 @@ def create_app():
             # 案例分析题走 AI 评分（综合评分）
             score_0_1, comment, sub_scores = dashscope_client.score_case_answer(question, user_answer or '')
             is_correct = score_0_1 >= 0.5
+        elif question.get('q_type') == 'fill_blank':
+            # 填空题走 AI 评分
+            score_0_1, comment = dashscope_client.score_fill_blank(question, user_answer or '')
+            is_correct = score_0_1 >= 0.6
         elif question.get('q_type') == 'short_answer':
             # 简答题走千问评分
             score_0_1, comment = dashscope_client.score_answer(question, user_answer or '')
@@ -485,6 +489,9 @@ def create_app():
                 score_0_1 = 1.0 if is_correct else 0.0
             elif q['q_type'] == 'short_answer':
                 score_0_1, comment = dashscope_client.score_answer(q, ua)
+                is_correct = score_0_1 >= 0.6
+            elif q['q_type'] == 'fill_blank':
+                score_0_1, comment = dashscope_client.score_fill_blank(q, ua)
                 is_correct = score_0_1 >= 0.6
             elif q['q_type'] == 'case_analysis':
                 score_0_1, comment, _ = dashscope_client.score_case_answer(q, ua)

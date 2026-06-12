@@ -96,6 +96,7 @@ class DashScopeClient:
             'short_answer': '简答题 (short_answer)',
             'true_false': '判断题 (true_false)',
             'case_analysis': '案例分析题 (case_analysis)',
+            'fill_blank': '填空题 (fill_blank)',
         }
         type_desc = '、'.join(type_desc_map.get(t, t) for t in question_types)
         prompt_parts.append(f'题目类型仅包括：{type_desc}。')
@@ -133,6 +134,18 @@ class DashScopeClient:
                 '5. analysis 字段写解析，说明从案例中哪些信息推导出答案。'
             )
 
+        # 填空题约束
+        if 'fill_blank' in question_types:
+            prompt_parts.append(
+                '对于 fill_blank 填空题：\n'
+                '1. 请针对笔记中的**核心重点概念**出题，不要考察生僻、边缘的细节知识点。\n'
+                '2. 在 content 中需要用 `____` （4 个英文下划线）表示需要填写的空白位置。\n'
+                '3. 一道题可以有 1~3 个空白，每个空白对应一个关键术语或短语。\n'
+                '4. answer 字段写所有空白的正确答案，多个答案之间用逗号隔开，按空白出现顺序排列。\n'
+                '5. options 字段为空数组。\n'
+                '6. 确保去掉空白后，句子本身仍然给出了足够的上下文线索来推断答案。'
+            )
+
         prompt_parts.append(
             '请直接输出 JSON，格式为：\n'
             '[\n'
@@ -145,7 +158,9 @@ class DashScopeClient:
             '  {"knowledge_tag": "知识点", "q_type": "short_answer", "content": "题干",'
             '   "options": [], "answer": "参考答案", "analysis": "解析", "difficulty": "medium"},\n'
             '  {"knowledge_tag": "知识点", "q_type": "case_analysis", "content": "题干",'
-            '   "options": [], "case_material": "案例材料文本...", "answer": "参考答案", "analysis": "解析", "difficulty": "hard"}\n'
+            '   "options": [], "case_material": "案例材料文本...", "answer": "参考答案", "analysis": "解析", "difficulty": "hard"},\n'
+            '  {"knowledge_tag": "知识点", "q_type": "fill_blank", "content": "带有____的句子",'
+            '   "options": [], "answer": "答案1,答案2", "analysis": "解析", "difficulty": "medium"}\n'
             ']\n'
             '不要输出任何解释或多余文字，只输出 JSON。'
         )
@@ -307,6 +322,41 @@ class DashScopeClient:
         except Exception as e:
             print('Error scoring case answer:', e)
             return 0.0, '评分失败', {}
+
+    def score_fill_blank(self, question: dict, user_answer: str):
+        """对填空题进行 AI 评分，判断用户填入的内容是否准确。
+
+        返回 (score_0_1, comment_str)。
+        """
+
+        if not self.api_key:
+            return 0.0, '未配置 API Key'
+
+        prompt = (
+            '你是一个严谨的 AI 阅卷老师，请对考生的填空题作答进行评分。\n'
+            '题目中 `____` 表示空白，用户需要根据上下文填入正确的术语。\n'
+            '允许多个正确答案（同义词、不同表述），只要意思准确即可得分。\n'
+            '请返回 JSON 格式：{"score": 0-1 的小数, "comment": "简短中文点评"}\n'
+            '不要输出其他内容。\n\n'
+            f'【题目】{question.get("content", "")}\n'
+            f'【知识点】{question.get("knowledge_tag", "")}\n'
+            f'【标准答案】{question.get("answer", "")}\n'
+            f'【考生作答】{user_answer}\n'
+        )
+
+        messages = [{'role': 'user', 'content': prompt}]
+        try:
+            result = self._call_with_json(messages)
+            if not isinstance(result, dict):
+                return 0.0, '评分异常'
+            score = float(result.get('score', 0))
+            comment = str(result.get('comment', '')) or ''
+            if score > 1:
+                score = score / 100.0
+            return max(0.0, min(1.0, score)), comment
+        except Exception as e:
+            print('Error scoring fill_blank:', e)
+            return 0.0, '评分失败'
 
     def follow_up_chat(self, question: dict, user_answer: str, chat_history: list, user_message: str):
         """AI 追问 — 对当前题目进行深度讲解、举例或对比。

@@ -79,7 +79,7 @@ def get_questions_by_knowledge(db, tags, limit, note_id=None, scope=None, q_type
         sql += f' AND knowledge_tag IN ({placeholders})'
         params.extend(tags)
 
-    if q_type in ('single_choice', 'short_answer'):
+    if q_type in ('single_choice', 'short_answer', 'fill_blank'):
         sql += ' AND q_type = ?'
         params.append(q_type)
 

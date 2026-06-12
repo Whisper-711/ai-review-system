@@ -108,7 +108,7 @@
 
           wrongQuestions.forEach((q) => {
             const div = document.createElement('article');
-            const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+            const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例', fill_blank: '填空' };
             div.className = 'rounded-2xl border border-rose-500/40 bg-slate-900/70 p-4 shadow-md shadow-rose-500/20';
 
             const title = document.createElement('div');
@@ -168,7 +168,7 @@
         submitBtn.disabled = false;
         progress.textContent = `${wpIndex + 1} / ${wrongQuestions.length}`;
 
-        const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+        const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例', fill_blank: '填空' };
         qEl.innerHTML = `<span class="text-indigo-400 text-xs">[${typeMap[q.q_type] || q.q_type}] ${q.knowledge_tag || ''}</span><br>${q.content}`;
 
         const optContainer = document.getElementById('wp-options');

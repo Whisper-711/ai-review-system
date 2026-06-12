@@ -54,6 +54,7 @@
                 <option value="single_choice">单选题</option>
                 <option value="true_false">判断题</option>
                 <option value="short_answer">简答题</option>
+                <option value="fill_blank">填空题</option>
               </select>
             </div>
             <div>
@@ -194,7 +195,7 @@
           card.id = 'q-' + idx;
           card.className = 'rounded-xl border border-slate-700 bg-slate-900/60 p-5';
 
-          const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例' };
+          const typeMap = { single_choice: '单选', true_false: '判断', short_answer: '简答', case_analysis: '案例', fill_blank: '填空' };
           const diffMap = { easy: '容易', medium: '中等', hard: '困难' };
 
           let html = '<div class="flex items-center gap-2 mb-3 flex-wrap">';
@@ -203,7 +204,11 @@
           if (q.knowledge_tag) html += '<span class="text-[10px] text-slate-400">' + q.knowledge_tag + '</span>';
           if (q.difficulty) html += '<span class="text-[10px] text-slate-500">' + (diffMap[q.difficulty] || q.difficulty) + '</span>';
           html += '</div>';
-          html += '<div class="text-slate-50 text-sm mb-3 leading-relaxed">' + (q.content || '') + '</div>';
+          var qContent = q.content || '';
+          if (q.q_type === 'fill_blank') {
+            qContent = qContent.replace(/____/g, '<span class="inline-block min-w-[60px] border-b-2 border-dashed border-amber-400 mx-1 px-1 text-amber-300 font-bold">____</span>');
+          }
+          html += '<div class="text-slate-50 text-sm mb-3 leading-relaxed">' + qContent + '</div>';
           card.innerHTML = html;
 
           if (q.case_material && q.case_material.trim()) {
