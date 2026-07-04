@@ -15,10 +15,10 @@ class DashScopeClient:
         self.api_key = api_key
         # bot_id 暂不使用，仅为兼容
         self.base_url = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-        # qwen3.6-flash 模型
-        self.model = 'qwen3.6-flash-2026-04-16'
+        # qwen3.6-35b-a3b 模型
+        self.model = 'deepseek-v4-flash'
 
-    def _call(self, messages, timeout=120):
+    def _call(self, messages, timeout=300):
         """统一的 DashScope 兼容模式 API 调用。"""
         headers = {
             'Authorization': f'Bearer {self.api_key}',
@@ -41,7 +41,7 @@ class DashScopeClient:
         print('DashScope response without expected format:', data)
         return ''
 
-    def _call_with_json(self, messages, timeout=120):
+    def _call_with_json(self, messages, timeout=300):
         """调用 API 并解析返回的 JSON 内容。"""
         text = self._call(messages, timeout=timeout)
         if not text:
@@ -176,7 +176,7 @@ class DashScopeClient:
         ]
 
         try:
-            questions_raw = self._call_with_json(messages)
+            questions_raw = self._call_with_json(messages, timeout=300)
             if not isinstance(questions_raw, list):
                 return []
 
